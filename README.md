@@ -50,7 +50,7 @@ The following arguments are supported
 - CpuCores (optional) - Integer of number of cpu cores
 - MemoryMb (optional) - Integer of MBs of memory to set the VM to
 - TerminationProtection (optional) - Boolean of the termination protection
-- Tags (optional) - List of strings to set specifuc tags on the Virtual Server
+- Tags (optional) - List of strings to set specific tags on the Virtual Server
 
 ### New-Vm
 - Name (required) - Name to set the Virtual Server to
@@ -64,7 +64,7 @@ The following arguments are supported
 - UserData (optional) - Send custom userdata (leave blank if you do not know what to enter)
 - Nics (required) - List of network names to link the Virtual Server to
 - Disks (required) - List of integers for disk sizes
-- Tags (optional) - List of strings to set specifuc tags on the Virtual Server
+- Tags (optional) - List of strings to set specific tags on the Virtual Server
 
 ### Invoke-Vm
 - Id (optional) - Id of the Virtual Server to send the action to (Either Id or Name is required)
