@@ -444,7 +444,7 @@ function Remove-VmSnapshot {
     "removeChildren"=$RemoveChildren.IsPresent;
   }
   
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method PUT -Uri "$($Annexus.Uri)/virtualmachine/$($Id)/snapshot/$($SnapshotId)/remove" -Body ($Snapshot | ConvertTo-Json)
+  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method PUT -Uri "$($Annexus.Uri)/virtualmachine/$($Id)/snapshot/$($SnapshotId)/remove" -ContentType "application/json" -Body ($Snapshot | ConvertTo-Json)
   $Res
 }
 
