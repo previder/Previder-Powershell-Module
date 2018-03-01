@@ -403,7 +403,7 @@ function New-VmSnapshot {
     [parameter(ParameterSetName="nameSet", Mandatory=$TRUE)]
     [string] $Name,
     [parameter(Mandatory=$TRUE)]
-    [string] $Decription,
+    [string] $Description,
     [switch] $Memory,
     [switch] $Quiesce
   )
@@ -415,8 +415,8 @@ function New-VmSnapshot {
   
   $Snapshot = @{
     "name"=$Description
-    "memory"=$Memory;
-    "quiesce"=$Quiesce;
+    "memory"=$Memory.IsPresent
+    "quiesce"=$Quiesce.IsPresent
   }
   
   $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method POST -Uri "$($Annexus.Uri)/virtualmachine/$($Id)/snapshot" -Body ($Snapshot | ConvertTo-Json) -ContentType "application/json"
