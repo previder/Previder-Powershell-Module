@@ -64,21 +64,21 @@ function Connect-Annexus {
       "otp"=$OTP;
     }
 
-    $Res = Invoke-WebRequest -SessionVariable AnnexusSession -Method GET -Uri "$($Annexus.Uri)/"
+    $Res = Invoke-WebRequest -SessionVariable AnnexusSession -Method GET -Uri "$($Annexus.Uri)/" -ContentType "application/json"
 	
     $Annexus.Session = $AnnexusSession
     $Annexus.Session.Headers.Add("X-CSRF-Token", $Res.Headers["X-CSRF-Token"])
 	
 	
     try {
-      $Res = Invoke-WebRequest -WebSession $Annexus.Session -Method POST -Uri "$($Annexus.Uri)/logincheck" -Body $Credentials
+      $Res = Invoke-WebRequest -WebSession $Annexus.Session -Method POST -Uri "$($Annexus.Uri)/logincheck" -Body $Credentials -ContentType "application/json"
     } catch {
       Write-Host "Error logging in"
       return
     }
 	
 	# Newly required block of code since release of 19/12/2017
-    $Res = Invoke-WebRequest -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/session"
+    $Res = Invoke-WebRequest -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/session" -ContentType "application/json"
 	$Annexus.Session.Headers.Set_Item("X-CSRF-Token", $Res.Headers["X-CSRF-Token"])
 	# End of newly required block of code since release of 19/12/2017
 	
@@ -91,7 +91,7 @@ function Disconnect-Annexus {
   [CmdletBinding()]
   param()
 
-  $Res = Invoke-WebRequest -WebSession $Annexus.Session -Method POST -Uri "$($Annexus.BaseUri)/logout"
+  $Res = Invoke-WebRequest -WebSession $Annexus.Session -Method POST -Uri "$($Annexus.BaseUri)/logout" -ContentType "application/json"
 
   $Annexus.Headers.Remove("X-Auth-Token")
   if($Annexus.Session.Headers.ContainsKey('X-Auth-Token')){
@@ -122,7 +122,7 @@ function Get-CustomerList {
   [CmdletBinding()]
   param()
   
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/customer"
+  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/customer" -ContentType "application/json"
   $Res
 }
 
@@ -133,7 +133,7 @@ function Get-Customer {
     [string] $Id
   )
   
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/customer/$($Id)"
+  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/customer/$($Id)" -ContentType "application/json"
   $Res
 }
 
@@ -142,7 +142,7 @@ function Get-VmList {
   [CmdletBinding()]
   param()
   
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/virtualmachine"
+  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/virtualmachine" -ContentType "application/json"
   $Res
 }
 
@@ -150,7 +150,7 @@ function Get-VmNetworkList {
   [CmdletBinding()]
   param()
   
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/virtualnetwork"
+  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/virtualnetwork" -ContentType "application/json"
   $Res
 }
 
@@ -158,7 +158,7 @@ function Get-VmClusterList {
   [CmdletBinding()]
   param()
   
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/virtualmachine/cluster"
+  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/virtualmachine/cluster" -ContentType "application/json"
   $Res
 }
 
@@ -166,7 +166,7 @@ function Get-VmTemplateList {
   [CmdletBinding()]
   param()
   
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/virtualmachine/template"
+  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/virtualmachine/template" -ContentType "application/json"
   $Res
 }
 
@@ -174,7 +174,7 @@ function Get-VmGroupList {
   [CmdletBinding()]
   param()
   
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/configurationitem/group"
+  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/configurationitem/group" -ContentType "application/json"
   $Res
 }
 
@@ -197,7 +197,7 @@ function Get-Vm {
     $Uri = "$($Annexus.Uri)/virtualmachine/byvmid/$($VmId)"
   }
   
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri $Uri
+  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri $Uri -ContentType "application/json"
   $Res
 }
 
@@ -215,7 +215,7 @@ function Remove-Vm {
     $Id = $Vm.id
   }
   
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method DELETE -Uri "$($Annexus.Uri)/virtualmachine/$($Id)"
+  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method DELETE -Uri "$($Annexus.Uri)/virtualmachine/$($Id)" -ContentType "application/json"
   $Res
 }
 
@@ -255,14 +255,14 @@ function Set-Vm {
   }
   
   if ($Group) {
-    $groupObj = VmGroupList | Where-Object {$_.name -eq $Group}
+    $groupObj = Get-VmGroupList | Where-Object {$_.name -eq $Group}
     if (!$groupObj) {
       Throw "group not found: " + $Group
     }
     $Vm.group = $groupObj
   }
   
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method PUT -Uri "$($Annexus.Uri)/virtualmachine/$($Id)" -Body ($Vm | ConvertTo-Json -Depth 10)
+  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method PUT -Uri "$($Annexus.Uri)/virtualmachine/$($Id)" -Body ($Vm | ConvertTo-Json -Depth 10) -ContentType "application/json"
   $Res
 }
 
@@ -464,7 +464,7 @@ function Reset-VmSnapshot {
     $Id = $Vm.id
   }
   
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method PUT -Uri "$($Annexus.Uri)/virtualmachine/$($Id)/snapshot/$($SnapshotId)/revert"
+  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method PUT -Uri "$($Annexus.Uri)/virtualmachine/$($Id)/snapshot/$($SnapshotId)/revert" -ContentType "application/json"
   $Res
 }
 
@@ -475,7 +475,7 @@ function Get-VmTask {
     [string] $Id
   )
 
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/configurationitem/task/$($Id)"
+  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/configurationitem/task/$($Id)" -ContentType "application/json"
   $Res
 }
 
