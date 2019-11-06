@@ -8,7 +8,7 @@ The provider needs to be configured with an API token that will be provided by P
 Import-Module Previder-Powershell-Module
 Connect-Annexus -Token <token>
 Get-VmList
-New-Vm -Name "Virtual Server 01" -Cluster "Express" -Template "Ubuntu 17.10" -CpuCores 2 -MemoryMb 2048 -Nics ["Public WAN"] -Disks [20480]
+New-Vm -Name "Virtual Server 01" -Cluster "Express" -Template "Ubuntu 18.04" -CpuCores 2 -MemoryMb 2048 -Nics @("Public WAN") -Disks @(20480) -Tags @()
 Wait-VmDeploy -Name "Virtual Server 01"
 Invoke-VmConsole -Name "Virtual Server 01"
 ```
