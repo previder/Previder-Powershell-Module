@@ -71,7 +71,7 @@ function Connect-Annexus {
 	
 	
     try {
-      $Res = Invoke-WebRequest -WebSession $Annexus.Session -Method POST -Uri "$($Annexus.Uri)/logincheck" -Body $Credentials -ContentType "application/json"
+      $Res = Invoke-WebRequest -WebSession $Annexus.Session -Method POST -Uri "$($Annexus.BaseUri)/logincheck" -Body $Credentials -ContentType "application/x-www-form-urlencoded"
     } catch {
       Write-Host "Error logging in"
       return
