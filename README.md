@@ -1,6 +1,6 @@
 # Previder Powershell Module
-The Previder Powershell Module is used to interact with resources on the Previder IaaS environment. 
-The provider needs to be configured with an API token that will be provided by Previder.
+The Previder Powershell Module can be used to interact with resources on the Previder IaaS environment. 
+The provider needs to be configured with an API token. This token can be acquired by loggin in and navigationg to your user setting page.
 
 ## Example Usage
 
@@ -8,9 +8,15 @@ The provider needs to be configured with an API token that will be provided by P
 Import-Module Previder-Powershell-Module
 Connect-Annexus -Token <token>
 Get-VmList
-New-Vm -Name "Virtual Server 01" -Cluster "Express" -Template "Ubuntu 18.04" -CpuCores 2 -MemoryMb 2048 -Nics @("Public WAN") -Disks @(20480) -Tags @()
+New-Vm -Name "Virtual Server 01" -Cluster "express" -Template "centos8" -CpuCores 2 -MemoryMb 4048 -Nics @("Public WAN") -Disks @(20480) -Tags @()
 Wait-VmDeploy -Name "Virtual Server 01"
 Invoke-VmConsole -Name "Virtual Server 01"
+$vm = Get-Vm -Name "Virtual Server 01"
+Invoke-Vm -Name "Virtual Server 01" -Action "POWEROFF"
+$task = Set-Vm -Id $vm.id -cpuCores 4
+Wait-VmTask -Task $task
+$task = Invoke-Vm -Name "Virtual Server 01" -Action "POWERON"
+Wait-VmTask -Task $task
 ```
 
 ## Argument reference
@@ -64,6 +70,7 @@ The following arguments are supported
 - UserData (optional) - Send custom userdata (leave blank if you do not know what to enter)
 - Nics (required) - List of network names to link the Virtual Server to
 - Disks (required) - List of integers for disk sizes
+- TerminationProtection (optional) - Boolean of the termination protection
 - Tags (optional) - List of strings to set specific tags on the Virtual Server
 
 ### Invoke-Vm
