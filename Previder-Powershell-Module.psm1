@@ -141,9 +141,10 @@ function Set-HandleByCustomer
         [string] $Id
     )
 
-    if ( $Annexus.Headers.ContainsKey("X-Customer-Id"))
+    if ( $Annexus.Headers.ContainsKey("X-CustomerId"))
     {
-        Set-HandleByCustomer
+        Write-Host "Clearing handle by customer"
+        $Annexus.Headers.Remove("X-CustomerId")
     }
 
     if ($Id)
@@ -151,12 +152,6 @@ function Set-HandleByCustomer
         $Customer = Get-Customer -Id $Id
         Write-Host "Handle by customer $( $Customer.name )"
         $Annexus.Headers.Add("X-CustomerId", $Customer.id)
-    }
-    else
-    {
-        Write-Host "Clearing handle by customer"
-        $Annexus.Headers.Remove("X-CustomerId")
-        $Annexus.Session.Headers.Remove("X-CustomerId")
     }
 }
 
@@ -213,7 +208,7 @@ function Get-VmList
         $PageRes = Get-VmPage -Page $Page
         $Res += $PageRes.content
         $Page++
-    } until ($PageRes.last -or $PageRes.statusCode -ne "OK")
+    } until ($PageRes.totalPages -eq $Page -or $PageRes.content.Count -eq 0)
     $Res
 }
 
@@ -250,7 +245,7 @@ function Get-VmNetworkList
         $PageRes = Get-VmNetworkPage -Page $Page
         $Res += $PageRes.content
         $Page++
-    } until ($PageRes.last -or $PageRes.statusCode -ne "OK")
+    } until ($PageRes.totalPages -eq $Page -or $PageRes.content.Count -eq 0)
     $Res
 }
 
@@ -295,6 +290,10 @@ function Get-Vm
     {
         $Vm = Get-VmList | Where-Object {
             $_.name -eq $Name
+        }
+        if (!$Vm)
+        {
+            throw "Virtualmachine not found by name"
         }
         $Id = $Vm.id
     }
@@ -361,7 +360,11 @@ function Set-Vm
     }
 
     $vm = Get-Vm -Id $Id
-    $vm.name = $Name
+    if ($Name)
+    {
+        $vm.name = $Name
+    }
+
     if ($CpuCores)
     {
         $vm.cpuCores = $CpuCores
