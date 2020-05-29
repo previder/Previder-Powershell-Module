@@ -44,6 +44,24 @@ The following arguments are supported
 - Id (optional) - Id of the Virtual Server you would like to show
 - Name (Optional) - Name of the Virtual Server you would like to show
 
+### Get-VmList
+Gets all the pages of virtualmachines
+
+### Get-VmPage
+- Page (optional) - Pagenumber starting at 0 for the first page
+- Size (optional) - Page size, defaults to 10
+- Sort (optional) - sort on fields, defaults to name,asc
+- Query (optional) - Filter query
+
+### Get-VmNetworkList
+Gets all the pages of virtualnetworks
+
+### Get-VmNetworkPage
+- Page (optional) - Pagenumber starting at 0 for the first page
+- Size (optional) - Page size, defaults to 10
+- Sort (optional) - sort on fields, defaults to name,asc
+- Query (optional) - Filter query
+
 ### Remove-Vm
 - Id (optional) - Id of the Virtual Server you would like to remove
 - Name (optional) - Name of the Virtual Server you would like to remove
