@@ -43,7 +43,6 @@ The following arguments are supported
 ### Get-Vm
 - Id (optional) - Id of the Virtual Server you would like to show
 - Name (Optional) - Name of the Virtual Server you would like to show
-- VmId (optional) - Backend Id of the Virtual Server you would like to show
 
 ### Remove-Vm
 - Id (optional) - Id of the Virtual Server you would like to remove
@@ -105,6 +104,10 @@ The following arguments are supported
 - Id (optional) - Id of the Virtual Server to wait until deployed (Either Id or Name is required)
 - Name (optional) - Name of the Virtual Server to wait until deployed (Either Id or Name is required)
 - Timeout (optional) - Integer in seconds for timeout (defaults to 3600 or 1 hour)
+
+### Wait-VmTask
+- Id (optional) - Id of the task to wait for completion
+- Task (optional) - Task to wait for completion
 
 
 ## Motivation

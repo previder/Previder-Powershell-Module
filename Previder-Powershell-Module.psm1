@@ -27,9 +27,7 @@ function New-AnnexusWebRequest
     param(
         [parameter(Mandatory = $TRUE)]
         [string] $Uri,
-        [parameter()]
         [string] $RequestMethod = "GET",
-        [parameter()]
         $Body
     )
 
@@ -140,7 +138,6 @@ function Set-HandleByCustomer
 {
     [CmdletBinding()]
     param(
-        [parameter(Mandatory = $FALSE)]
         [string] $Id
     )
 
@@ -157,7 +154,7 @@ function Set-HandleByCustomer
     }
     else
     {
-        Write-Host "Clear handle by customer"
+        Write-Host "Clearing handle by customer"
         $Annexus.Headers.Remove("X-CustomerId")
         $Annexus.Session.Headers.Remove("X-CustomerId")
     }
@@ -186,13 +183,9 @@ function Get-VmPage
 {
     [CmdletBinding()]
     param(
-        [parameter(Mandatory = $FALSE)]
         [Int16] $Page = 0,
-        [parameter(Mandatory = $FALSE)]
         [Int16] $Size = 10,
-        [parameter(Mandatory = $FALSE)]
         [string] $Query = "",
-        [parameter(Mandatory = $FALSE)]
         [string] $Sort = "name,asc"
     )
 
@@ -228,13 +221,9 @@ function Get-VmNetworkPage
 {
     [CmdletBinding()]
     param(
-        [parameter(Mandatory = $FALSE)]
         [Int16] $Page = 0,
-        [parameter(Mandatory = $FALSE)]
         [Int16] $Size = 10,
-        [parameter(Mandatory = $FALSE)]
         [string] $Query = "",
-        [parameter(Mandatory = $FALSE)]
         [string] $Sort = "name,asc"
     )
 
@@ -675,7 +664,7 @@ function Get-VmTask
 {
     [CmdletBinding()]
     param(
-        [parameter(Mandatory = $FALSE)]
+        [parameter(Mandatory = $TRUE)]
         [string] $Id
     )
 
