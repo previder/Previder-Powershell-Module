@@ -637,7 +637,7 @@ function Remove-VmSnapshot
         "removeChildren" = $RemoveChildren.IsPresent;
     }
 
-    $Res = New-AnnexusWebRequest - Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/$( $Id )/snapshot/$( $SnapshotId )" -RequestMethod DELETE -Body ($Snapshot | ConvertTo-Json)
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/$( $Id )/snapshot/$( $SnapshotId )" -RequestMethod DELETE -Body ($Snapshot | ConvertTo-Json)
     $Res
 }
 
