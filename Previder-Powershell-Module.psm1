@@ -3,533 +3,735 @@
 #
 
 $Annexus = @{
-  BaseUri = "https://portal.previder.nl";
-  Uri = "https://portal.previder.nl/api";
-  Headers = @{};
+    BaseUri = "https://portal.previder.nl";
+    Uri = "https://portal.previder.nl/api";
+    Headers = @{ };
 }
 
 Add-Type -TypeDefinition @"
   public enum VirtualMachineControlAction {
     POWERON, RESTART, RESET, POWEROFF, SHUTDOWN, SUSPEND, INSTALL_GUEST_TOOLS,
-    UPGRADE_GUEST_TOOLS, POWERON_BIOS, RESTART_BIOS, RESET_BIOS, REFRESH_STATE
+    UPGRADE_GUEST_TOOLS, POWERON_BIOS, RESTART_BIOS, RESET_BIOS
   }
 "@
 
 Add-Type -TypeDefinition @"
   public enum ProvisioningType {
-    NONE, CLOUD_INIT_OVF, SYSPREP, SYSPREP_TEXT
+    NONE, CLOUD_INIT_OVF, CLOUD_INIT_GUEST_INFO, SYSPREP, SYSPREP_TEXT
   }
 "@
 
-function Connect-Annexus {
-  [CmdletBinding(DefaultParameterSetName="credSet")]
-  param(
-    [parameter(ParameterSetName="tokenSet", Mandatory=$TRUE)]
-    [string] $Token,
-    [parameter(ParameterSetName="credSet", Mandatory=$TRUE)]
-    [string] $Accountname,
-    [parameter(ParameterSetName="credSet", Mandatory=$TRUE)]
-    [string] $Username,
-    [parameter(ParameterSetName="credSet", Mandatory=$TRUE)]
-    [Security.SecureString] $Password,
-    [parameter(ParameterSetName="credSet", Mandatory=$FALSE)]
-    [string] $OTP,
-    [switch] $UseOTP,
-    [string] $Uri
-  )
+function New-AnnexusWebRequest
+{
+    [CmdletBinding()]
+    param(
+        [parameter(Mandatory = $TRUE)]
+        [string] $Uri,
+        [string] $RequestMethod = "GET",
+        $Body
+    )
 
-  If ($UseOTP -and !$OTP) {
-    $OTP = Read-Host 'OTP'
-  }
-  
-  If ($Uri) {
-    $Annexus.Uri = $Uri
-  }
-  
-  If ($Token) {
-    $Annexus.Headers.Add("X-Auth-Token", $Token)
-  } Else {
+    $DefaultRequestMethod = "application/json"
 
-    $UnmanagedString = [System.IntPtr]::Zero
-    try {
-      $UnmanagedString = [Runtime.InteropServices.Marshal]::SecureStringToGlobalAllocUnicode($Password);
-      $UnsecurePassword = [Runtime.InteropServices.Marshal]::PtrToStringUni($UnmanagedString);
-    } finally {
-      [Runtime.InteropServices.Marshal]::ZeroFreeGlobalAllocUnicode($UnmanagedString);
+    if ($Body)
+    {
+        $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method $RequestMethod -Uri $Uri -ContentType $DefaultRequestMethod -Body $Body
     }
-        
-    $Credentials = @{
-      "username"="$($Username)@$($Accountname)";
-      "password"=$UnsecurePassword;
-      "otp"=$OTP;
+    else
+    {
+        $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method $RequestMethod -Uri $Uri -ContentType $DefaultRequestMethod
     }
 
-    $Res = Invoke-WebRequest -SessionVariable AnnexusSession -Method GET -Uri "$($Annexus.Uri)/" -ContentType "application/json"
-	
-    $Annexus.Session = $AnnexusSession
-    $Annexus.Session.Headers.Add("X-CSRF-Token", $Res.Headers["X-CSRF-Token"])
-	
-	
-    try {
-      $Res = Invoke-WebRequest -WebSession $Annexus.Session -Method POST -Uri "$($Annexus.BaseUri)/logincheck" -Body $Credentials -ContentType "application/x-www-form-urlencoded"
-    } catch {
-      Write-Host "Error logging in"
-      return
-    }
-	
-	# Newly required block of code since release of 19/12/2017
-    $Res = Invoke-WebRequest -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/session" -ContentType "application/json"
-	$Annexus.Session.Headers.Set_Item("X-CSRF-Token", $Res.Headers["X-CSRF-Token"])
-	# End of newly required block of code since release of 19/12/2017
-	
-    Write-Host "Logged in successfully"
     $Res
-  }
+
 }
 
-function Disconnect-Annexus {
-  [CmdletBinding()]
-  param()
+function Connect-Annexus
+{
+    [CmdletBinding(DefaultParameterSetName = "credSet")]
+    param(
+        [parameter(ParameterSetName = "tokenSet", Mandatory = $TRUE)]
+        [string] $Token,
+        [parameter(ParameterSetName = "credSet", Mandatory = $TRUE)]
+        [string] $Accountname,
+        [parameter(ParameterSetName = "credSet", Mandatory = $TRUE)]
+        [string] $Username,
+        [parameter(ParameterSetName = "credSet", Mandatory = $TRUE)]
+        [Security.SecureString] $Password,
+        [parameter(ParameterSetName = "credSet", Mandatory = $FALSE)]
+        [string] $OTP,
+        [switch] $UseOTP,
+        [string] $Uri
+    )
 
-  $Res = Invoke-WebRequest -WebSession $Annexus.Session -Method POST -Uri "$($Annexus.BaseUri)/logout" -ContentType "application/json"
-
-  $Annexus.Headers.Remove("X-Auth-Token")
-  if($Annexus.Session.Headers.ContainsKey('X-Auth-Token')){
-     $Annexus.Session.Headers.Remove("X-Auth-Token")
-  }
-  Write-Host "Logged out"
-}
-
-function Set-HandleByCustomer {
-  [CmdletBinding()]
-  param(
-    [parameter(Mandatory=$FALSE)]
-    [string] $Id
-  )
-  
-  if ($Id) {
-    $Customer = Get-Customer -Id $Id
-    Write-Host "Handle by customer $($Customer.name)"
-    $Annexus.Headers.Add("X-CustomerId", $Customer.id)
-  } else {
-    Write-Host "Clear handle by customer"
-    $Annexus.Headers.Remove("X-CustomerId")
-    $Annexus.Session.Headers.Remove("X-CustomerId")
-  }
-}
-
-function Get-CustomerList {
-  [CmdletBinding()]
-  param()
-  
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/customer" -ContentType "application/json"
-  $Res
-}
-
-function Get-Customer {
-  [CmdletBinding()]
-  param(
-    [parameter(Mandatory=$TRUE)]
-    [string] $Id
-  )
-  
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/customer/$($Id)" -ContentType "application/json"
-  $Res
-}
-
-
-function Get-VmList {
-  [CmdletBinding()]
-  param()
-  
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/virtualmachine" -ContentType "application/json"
-  $Res
-}
-
-function Get-VmNetworkList {
-  [CmdletBinding()]
-  param()
-  
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/virtualnetwork" -ContentType "application/json"
-  $Res
-}
-
-function Get-VmClusterList {
-  [CmdletBinding()]
-  param()
-  
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/virtualmachine/cluster" -ContentType "application/json"
-  $Res
-}
-
-function Get-VmTemplateList {
-  [CmdletBinding()]
-  param()
-  
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/virtualmachine/template" -ContentType "application/json"
-  $Res
-}
-
-function Get-VmGroupList {
-  [CmdletBinding()]
-  param()
-  
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/configurationitem/group" -ContentType "application/json"
-  $Res
-}
-
-function Get-Vm {
-  [CmdletBinding(DefaultParameterSetName="nameSet")]
-  param(
-    [parameter(ParameterSetName="idSet", Mandatory=$TRUE)]
-    [string] $Id,
-    [parameter(ParameterSetName="nameSet", Mandatory=$TRUE)]
-    [string] $Name,
-    [parameter(ParameterSetName="vmIdSet", Mandatory=$TRUE)]
-    [string] $VmId
-  )
-
-  If ($Id) {
-    $Uri = "$($Annexus.Uri)/virtualmachine/$($Id)"
-  } ElseIf ($Name) {
-    $Uri = "$($Annexus.Uri)/virtualmachine/byname/$($Name)"
-  } ElseIf ($VmId) {
-    $Uri = "$($Annexus.Uri)/virtualmachine/byvmid/$($VmId)"
-  }
-  
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri $Uri -ContentType "application/json"
-  $Res
-}
-
-function Remove-Vm {
-  [CmdletBinding(DefaultParameterSetName="nameSet")]
-  param(
-    [parameter(ParameterSetName="idSet", Mandatory=$TRUE)]
-    [string] $Id,
-    [parameter(ParameterSetName="nameSet", Mandatory=$TRUE)]
-    [string] $Name
-  )
-  
-  if ($Name) {
-    $Vm = Get-Vm -Name $Name
-    $Id = $Vm.id
-  }
-  
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method DELETE -Uri "$($Annexus.Uri)/virtualmachine/$($Id)" -ContentType "application/json"
-  $Res
-}
-
-function Set-Vm {
-  [CmdletBinding()]
-  param(
-    [parameter(Mandatory=$TRUE)]
-    [string] $Id,
-    [string] $Name,
-    [string] $Group,
-    [int] $CpuCores,
-    [int] $MemoryMb,
-    [boolean] $TerminationProtection,
-    [string[]] $Tags
-  )
-  
-  $Vm = Get-Vm -Id $Id
-  
-  If ($Name) {
-    $Vm.name = $Name
-  }
-
-  If ($CpuCores) {
-    $Vm.cpuCores = $CpuCores
-  }
-  
-  If ($MemoryMb) {
-    $Vm.memoryMb = $MemoryMb
-  }
-  
-  if ($Tags) {
-	$Vm.tags = $Tags
-  }
-  
-  If ($TerminationProtection) {
-    $Vm.terminationProtection = $TerminationProtection
-  }
-  
-  if ($Group) {
-    $groupObj = Get-VmGroupList | Where-Object {$_.name -eq $Group}
-    if (!$groupObj) {
-      Throw "group not found: " + $Group
+    If ($UseOTP -and !$OTP)
+    {
+        $OTP = Read-Host 'OTP'
     }
-    $Vm.group = $groupObj
-  }
-  
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method PUT -Uri "$($Annexus.Uri)/virtualmachine/$($Id)" -Body ($Vm | ConvertTo-Json -Depth 10) -ContentType "application/json"
-  $Res
-}
 
-function New-Vm {
-  [CmdletBinding(DefaultParameterSetName="newSet")]
-  param(
-    [parameter(Mandatory=$TRUE)]
-    [string] $Name,
-    [string] $Group,
-    [string] $Cluster = "Express",
-    [parameter(ParameterSetName="newSet", Mandatory=$TRUE)]
-    [string] $Template,
-    [parameter(ParameterSetName="copySet", Mandatory=$TRUE)]
-    [string] $SourceVmId,
-    [int] $CpuCores = 1,
-    [int] $MemoryMb = 1024,
-    [ProvisioningType] $ProvisioningType,
-    [string] $UserData,
-    [parameter(Mandatory=$TRUE)]
-    [string[]] $Nics,
-    [parameter(Mandatory=$TRUE)]
-    [int[]] $Disks,
-    [string[]] $Tags
-  )
-  
-  if ($Group) {
-    $groupObj = Get-VmGroupList | Where-Object {$_.name -eq $Group}
-    if (!$groupObj) {
-      Throw "group not found: " + $Group
+    If ($Uri)
+    {
+        $Annexus.Uri = $Uri
     }
-  }
 
-  If ($Template) {
-    $templateObj = Get-VmTemplateList | Where-Object {$_.name -eq $Template}
-    if (!$templateObj) {
-      Throw "template not found: " + $Template
+    If ($Token)
+    {
+        $Annexus.Headers.Add("X-Auth-Token", $Token)
     }
-  } ElseIf ($SourceVmId) {
-    $sourceVmObj = Get-Vm -Id $SourceVmId
-    if (!$sourceVmObj) {
-      Throw "source vm not found: " + $SourceVmId
+    Else
+    {
+
+        $UnmanagedString = [System.IntPtr]::Zero
+        try
+        {
+            $UnmanagedString = [Runtime.InteropServices.Marshal]::SecureStringToGlobalAllocUnicode($Password);
+            $UnsecurePassword = [Runtime.InteropServices.Marshal]::PtrToStringUni($UnmanagedString);
+        }
+        finally
+        {
+            [Runtime.InteropServices.Marshal]::ZeroFreeGlobalAllocUnicode($UnmanagedString);
+        }
+
+        $Credentials = @{
+            "username" = "$( $Username )@$( $Accountname )";
+            "password" = $UnsecurePassword;
+            "otp" = $OTP;
+        }
+
+        $Res = Invoke-WebRequest -SessionVariable AnnexusSession -Method GET -Uri "$( $Annexus.Uri )/" -ContentType "application/json"
+
+        $Annexus.Session = $AnnexusSession
+        $Annexus.Session.Headers.Add("X-CSRF-Token", $Res.Headers["X-CSRF-Token"])
+
+        try
+        {
+            $Res = Invoke-WebRequest -WebSession $Annexus.Session -Method POST -Uri "$( $Annexus.BaseUri )/logincheck" -Body $Credentials -ContentType "application/x-www-form-urlencoded"
+        }
+        catch
+        {
+            Write-Host "Error logging in"
+            return
+        }
+
+        $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/session"
+        $Annexus.Session.Headers.Set_Item("X-CSRF-Token", $Res.Headers["X-CSRF-Token"])
+
+        Write-Host "Logged in successfully"
+        $Res
     }
-  }
+}
 
-  $computeClusterObj = Get-VmClusterList | Where-Object {$_.name -eq $Cluster}
-  if (!$computeClusterObj) {
-    Throw "cluster not found: " + $Cluster
-  }
-  
-  $virtualDisks = [System.Collections.ArrayList]@()
-  ForEach ($diskSize in $Disks) {
-    [void]$virtualDisks.Add(@{
-      "diskSize"=$diskSize;
-    })
-  }
-
-  $networkInterfaces = [System.Collections.ArrayList]@()
-  ForEach ($networkName in $Nics) {
-    $network = Get-VmNetworkList | Where-Object {$_.name -eq $networkName}
-    if (!$network) {
-      Throw "network not found: " + $networkName
+function Disconnect-Annexus
+{
+    [CmdletBinding()]
+    param()
+    if ($Annexus.Session -and $Annexus.Session.Headers.ContainsKey("X-CSRF-Token"))
+    {
+        Invoke-WebRequest -WebSession $Annexus.Session -Method POST -Uri "$( $Annexus.BaseUri )/logout" -ContentType "application/json"
     }
-    [void]$networkInterfaces.Add(@{
-      "network"=@{
-        "id"=$network.id
-      };
-      "connected"=$TRUE;
-    })
-  }
-  
-  $vm = @{
-    "name"=$Name;
-    "cpuCores"=$CpuCores;
-    "memoryMb"=$MemoryMb;
-    "networkInterfaces"=$networkInterfaces;
-    "virtualDisks"=$virtualDisks;
-    "userData"=$UserData;
-    "group"=$groupObj;
-    "template"=$templateObj;
-    "computeCluster"=$computeClusterObj;
-    "provisioningType"=$ProvisioningType;
-	"tags"=$Tags
-  }
-  
-  if ($sourceVmObj) {
-    $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method POST -Uri "$($Annexus.Uri)/virtualmachine/$($SourceVmId)/clone" -Body ($Vm | ConvertTo-Json -Depth 10) -ContentType "application/json"
-  } else {
-    $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method POST -Uri "$($Annexus.Uri)/virtualmachine" -Body ($Vm | ConvertTo-Json -Depth 10) -ContentType "application/json"
-  }
-  $Res
+
+    $Annexus.Headers.Remove("X-Auth-Token")
+    Write-Host "Logged out"
 }
 
-function Invoke-Vm {
-  [CmdletBinding(DefaultParameterSetName="nameSet")]
-  param(
-    [parameter(ParameterSetName="idSet", Mandatory=$TRUE)]
-    [string] $Id,
-    [parameter(ParameterSetName="nameSet", Mandatory=$TRUE)]
-    [string] $Name,
-    [parameter(Mandatory=$TRUE)]
-    [VirtualMachineControlAction] $Action
-  )
-  
-  if ($Name) {
-    $Vm = Get-Vm -Name $Name
-    $Id = $Vm.id
-  }
- 
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method POST -Uri "$($Annexus.Uri)/virtualmachine/$($Id)/control/$($Action)" -ContentType "application/json"
-  $Res
+function Set-HandleByCustomer
+{
+    [CmdletBinding()]
+    param(
+        [string] $Id
+    )
+
+    if ( $Annexus.Headers.ContainsKey("X-CustomerId"))
+    {
+        Write-Host "Clearing handle by customer"
+        $Annexus.Headers.Remove("X-CustomerId")
+    }
+
+    if ($Id)
+    {
+        $Customer = Get-Customer -Id $Id
+        Write-Host "Handle by customer $( $Customer.name )"
+        $Annexus.Headers.Add("X-CustomerId", $Customer.id)
+    }
 }
 
-function Invoke-VmConsole {
-  [CmdletBinding(DefaultParameterSetName="nameSet")]
-  param(
-    [parameter(ParameterSetName="idSet", Mandatory=$TRUE)]
-    [string] $Id,
-    [parameter(ParameterSetName="nameSet", Mandatory=$TRUE)]
-    [string] $Name
-  )
-  
-  if ($Name) {
-    $Vm = Get-Vm -Name $Name
-    $Id = $Vm.id
-  }
-  
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method POST -Uri "$($Annexus.Uri)/virtualmachine/$($Id)/console" -ContentType "application/json"
-  Start-Process $Res.result
-  $Res
+function Get-CustomerList
+{
+    [CmdletBinding()]
+    param()
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/customer"
+    $Res
 }
 
-
-function New-VmSnapshot {
-  [CmdletBinding(DefaultParameterSetName="nameSet")]
-  param(
-    [parameter(ParameterSetName="idSet", Mandatory=$TRUE)]
-    [string] $Id,
-    [parameter(ParameterSetName="nameSet", Mandatory=$TRUE)]
-    [string] $Name,
-    [parameter(Mandatory=$TRUE)]
-    [string] $Description,
-    [switch] $Memory,
-    [switch] $Quiesce
-  )
-  
-  if ($Name) {
-    $Vm = Get-Vm -Name $Name
-    $Id = $Vm.id
-  }
-  
-  $Snapshot = @{
-    "name"=$Description
-    "memory"=$Memory.IsPresent
-    "quiesce"=$Quiesce.IsPresent
-  }
-  
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method POST -Uri "$($Annexus.Uri)/virtualmachine/$($Id)/snapshot" -Body ($Snapshot | ConvertTo-Json) -ContentType "application/json"
-  $Res
+function Get-Customer
+{
+    [CmdletBinding()]
+    param(
+        [parameter(Mandatory = $TRUE)]
+        [string] $Id
+    )
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/customer/$( $Id )"
+    $Res
 }
 
-function Remove-VmSnapshot {
-  [CmdletBinding(DefaultParameterSetName="nameSet")]
-  param(
-    [parameter(ParameterSetName="idSet", Mandatory=$TRUE)]
-    [string] $Id,
-    [parameter(ParameterSetName="nameSet", Mandatory=$TRUE)]
-    [string] $Name,
-    [parameter(Mandatory=$TRUE)]
-    [int] $SnapshotId,
-    [switch] $RemoveChildren
-  )
+function Get-VmPage
+{
+    [CmdletBinding()]
+    param(
+        [Int16] $Page = 0,
+        [Int16] $Size = 10,
+        [string] $Query = "",
+        [string] $Sort = "name,asc"
+    )
 
-  if ($Name) {
-    $Vm = Get-Vm -Name $Name
-    $Id = $Vm.id
-  }
-  
-  $Snapshot = @{
-    "removeChildren"=$RemoveChildren.IsPresent;
-  }
-  
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method PUT -Uri "$($Annexus.Uri)/virtualmachine/$($Id)/snapshot/$($SnapshotId)/remove" -ContentType "application/json" -Body ($Snapshot | ConvertTo-Json)
-  $Res
+    $QueryParams = @{
+        "page" = $Page
+        "size" = $Size
+        "query" = $Query
+        "sort" = $Sort
+    }
+
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/" -Body $QueryParams
+    $Res
+
 }
 
-function Reset-VmSnapshot {
-  [CmdletBinding(DefaultParameterSetName="nameSet")]
-  param(
-    [parameter(ParameterSetName="idSet", Mandatory=$TRUE)]
-    [string] $Id,
-    [parameter(ParameterSetName="nameSet", Mandatory=$TRUE)]
-    [string] $Name,
-    [parameter(Mandatory=$TRUE)]
-    [int] $SnapshotId
-  )
-  
-  if ($Name) {
-    $Vm = Get-Vm -Name $Name
-    $Id = $Vm.id
-  }
-  
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method PUT -Uri "$($Annexus.Uri)/virtualmachine/$($Id)/snapshot/$($SnapshotId)/revert" -ContentType "application/json"
-  $Res
+function Get-VmList
+{
+    [CmdletBinding()]
+    param()
+
+    $Res = @()
+    $Page = 0
+    do
+    {
+        $PageRes = Get-VmPage -Page $Page
+        $Res += $PageRes.content
+        $Page++
+    } until ($PageRes.totalPages -eq $Page -or $PageRes.content.Count -eq 0)
+    $Res
 }
 
-function Get-VmTask {
-  [CmdletBinding()]
-  param(
-    [parameter(Mandatory=$FALSE)]
-    [string] $Id
-  )
+function Get-VmNetworkPage
+{
+    [CmdletBinding()]
+    param(
+        [Int16] $Page = 0,
+        [Int16] $Size = 10,
+        [string] $Query = "",
+        [string] $Sort = "name,asc"
+    )
 
-  $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method GET -Uri "$($Annexus.Uri)/configurationitem/task/$($Id)" -ContentType "application/json"
-  $Res
+    $QueryParams = @{
+        "page" = $Page
+        "size" = $Size
+        "query" = $Query
+        "sort" = $Sort
+    }
+
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualnetwork/" -Body $QueryParams
+    $Res
 }
 
-function Wait-VmDeploy {
-  [CmdletBinding(DefaultParameterSetName="nameSet")]
-  param(
-    [parameter(ParameterSetName="idSet", Mandatory=$TRUE)]
-    [string] $Id,
-    [parameter(ParameterSetName="nameSet", Mandatory=$TRUE)]
-    [string] $Name,
-    [int] $Timeout = 3600
-  )
-  
-  if ($Name) {
-    $Vm = Get-Vm -Name $Name
-    $Id = $Vm.id
-  }
-  
-  $Timespan = New-TimeSpan -Seconds $Timeout
-  $State = ""
-   
-  $Sw = [Diagnostics.Stopwatch]::StartNew()
-  while (!$State -eq "POWEREDON" -and $Sw.Elapsed -lt $Timespan) {
-    $Vm = Get-Vm -Id $Id
-    $State = $Vm.state
-    Start-Sleep -Seconds 3
-  }
-  
-  $Vm
+function Get-VmNetworkList
+{
+    [CmdletBinding()]
+    param()
+
+    $Res = @()
+    $Page = 0
+    do
+    {
+        $PageRes = Get-VmNetworkPage -Page $Page
+        $Res += $PageRes.content
+        $Page++
+    } until ($PageRes.totalPages -eq $Page -or $PageRes.content.Count -eq 0)
+    $Res
 }
 
-function Wait-VmTask {
-  [CmdletBinding(DefaultParameterSetName="taskSet")]
-  param(
-    [parameter(ParameterSetName="taskSet", Mandatory=$TRUE, ValueFromPipeline=$TRUE)]
-    $Task,
-    [parameter(ParameterSetName="idSet", Mandatory=$TRUE)]
-    [string] $Id,
-    [int] $Timeout = 60
-  )
-  
-  $Timespan = New-TimeSpan -Seconds $Timeout
-  $Completed = $FALSE
-  
-  if ($Task){
-    $Id = $Task.id
-  }
-  
-  $Sw = [Diagnostics.Stopwatch]::StartNew()
-  while (!$Completed -and $Sw.Elapsed -lt $Timespan) {
-    $Task = Get-VmTask -Id $Id
-    $Completed = $Task.completed
-    Start-Sleep -Seconds 1
-  }
+function Get-VmClusterList
+{
+    [CmdletBinding()]
+    param()
 
-  $Task
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/computecluster/"
+    $Res
+}
+
+function Get-VmTemplateList
+{
+    [CmdletBinding()]
+    param()
+
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/template/"
+    $Res
+}
+
+function Get-VmGroupList
+{
+    [CmdletBinding()]
+    param()
+
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/configurationitem/group"
+    $Res
+}
+
+function Get-Vm
+{
+    [CmdletBinding(DefaultParameterSetName = "nameSet")]
+    param(
+        [parameter(ParameterSetName = "idSet", Mandatory = $TRUE)]
+        [string] $Id,
+        [parameter(ParameterSetName = "nameSet", Mandatory = $TRUE)]
+        [string] $Name
+    )
+
+    If ($Name)
+    {
+        $Vm = Get-VmList | Where-Object {
+            $_.name -eq $Name
+        }
+        if (!$Vm)
+        {
+            throw "Virtualmachine not found by name"
+        }
+        $Id = $Vm.id
+    }
+
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/$( $Id )"
+    $Res
+}
+
+function Remove-Vm
+{
+    [CmdletBinding(DefaultParameterSetName = "nameSet")]
+    param(
+        [parameter(ParameterSetName = "idSet", Mandatory = $TRUE)]
+        [string] $Id,
+        [parameter(ParameterSetName = "nameSet", Mandatory = $TRUE)]
+        [string] $Name
+    )
+
+    if ($Name)
+    {
+        $Vm = Get-Vm -Name $Name
+        $Id = $Vm.id
+    }
+
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/$( $Id )" -RequestMethod DELETE
+    $Res
+}
+
+function Set-Vm
+{
+    [CmdletBinding()]
+    param(
+        [parameter(Mandatory = $TRUE)]
+        [string] $Id,
+        [string] $Name,
+        [string] $Group,
+        [string] $Cluster,
+        [int] $CpuCores,
+        [int] $MemoryMb,
+        [string[]] $Tags,
+        [boolean] $TerminationProtection
+    )
+
+    if ($Group)
+    {
+        $groupObj = Get-VmGroupList | Where-Object {
+            $_.name -eq $Group
+        }
+        if (!$groupObj)
+        {
+            Throw "group not found: " + $Group
+        }
+    }
+
+    if ($Cluster)
+    {
+        $computeClusterObj = Get-VmClusterList | Where-Object {
+            $_.name -eq $Cluster
+        }
+        if (!$computeClusterObj)
+        {
+            Throw "cluster not found: " + $Cluster
+        }
+    }
+
+    $vm = Get-Vm -Id $Id
+    if ($Name)
+    {
+        $vm.name = $Name
+    }
+
+    if ($CpuCores)
+    {
+        $vm.cpuCores = $CpuCores
+    }
+
+    if ($MemoryMb)
+    {
+        $vm.memory = $MemoryMb
+    }
+
+    if ($computeClusterObj)
+    {
+        $vm.computeCluster = $computeClusterObj.name
+    }
+
+    if ($Tags)
+    {
+        $vm.tags = $Tags
+    }
+
+    if ($groupObj)
+    {
+        $vm.group = $groupObj.name
+    }
+
+    If ($TerminationProtection)
+    {
+        $Vm.terminationProtection = $TerminationProtection
+    }
+
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/$( $Id )" -RequestMethod PUT -Body ($Vm | ConvertTo-Json -Depth 10)
+    $Res
+}
+
+function New-Vm
+{
+    [CmdletBinding(DefaultParameterSetName = "newSet")]
+    param(
+        [parameter(Mandatory = $TRUE)]
+        [string] $Name,
+        [string] $Group,
+        [string] $Cluster = "express",
+        [parameter(ParameterSetName = "newSet", Mandatory = $TRUE)]
+        [string] $Template,
+        [parameter(ParameterSetName = "copySet", Mandatory = $TRUE)]
+        [string] $SourceVmId,
+        [int] $CpuCores = 1,
+        [int] $MemoryMb = 1024,
+        [ProvisioningType] $ProvisioningType,
+        [string] $UserData,
+        [parameter(Mandatory = $TRUE)]
+        [string[]] $Nics,
+        [parameter(Mandatory = $TRUE)]
+        [int[]] $Disks,
+        [string[]] $Tags,
+        [boolean] $TerminationProtection
+    )
+
+    if ($Group)
+    {
+        $groupObj = Get-VmGroupList | Where-Object {
+            $_.name -eq $Group
+        }
+        if (!$groupObj)
+        {
+            Throw "group not found: " + $Group
+        }
+    }
+
+    If ($Template)
+    {
+        $templateObj = Get-VmTemplateList | Where-Object {
+            $_.name -eq $Template
+        }
+        if (!$templateObj)
+        {
+            Throw "template not found: " + $Template
+        }
+    }
+    ElseIf ($SourceVmId)
+    {
+        $sourceVmObj = Get-Vm -Id $SourceVmId
+        if (!$sourceVmObj)
+        {
+            Throw "source vm not found: " + $SourceVmId
+        }
+    }
+
+    $computeClusterObj = Get-VmClusterList | Where-Object {
+        $_.name -eq $Cluster
+    }
+    if (!$computeClusterObj)
+    {
+        Throw "cluster not found: " + $Cluster
+    }
+
+    $virtualDisks = [System.Collections.ArrayList]@()
+    ForEach ($diskSize in $Disks)
+    {
+        [void]$virtualDisks.Add(@{
+            "size" = $diskSize;
+        })
+    }
+
+    $networkInterfaces = [System.Collections.ArrayList]@()
+    ForEach ($networkName in $Nics)
+    {
+        $network = Get-VmNetworkList | Where-Object {
+            $_.name -eq $networkName
+        }
+        if (!$network)
+        {
+            Throw "network not found: " + $networkName
+        }
+        [void]$networkInterfaces.Add(@{
+            "network" = $network.id
+            "connected" = $TRUE
+        })
+    }
+
+    $vm = @{
+        "name" = $Name;
+        "cpuCores" = $CpuCores;
+        "memory" = $MemoryMb;
+        "networkInterfaces" = $networkInterfaces;
+        "disks" = $virtualDisks;
+        "userData" = $UserData;
+        "computeCluster" = $computeClusterObj.name;
+        "provisioningType" = $ProvisioningType;
+        "tags" = $Tags
+    }
+
+    if ($groupObj)
+    {
+        $vm.group = $groupObj.name
+    }
+
+    if ($templateObj)
+    {
+        $vm.template = $templateObj.name
+    }
+
+    If ($TerminationProtection)
+    {
+        $Vm.terminationProtection = $TerminationProtection
+    }
+
+    if ($sourceVmObj)
+    {
+        $vm.sourceVirtualMachine = $SourceVmId
+    }
+
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/" -RequestMethod POST -Body ($Vm | ConvertTo-Json -Depth 10)
+    $Res
+}
+
+function Invoke-Vm
+{
+    [CmdletBinding(DefaultParameterSetName = "nameSet")]
+    param(
+        [parameter(ParameterSetName = "idSet", Mandatory = $TRUE)]
+        [string] $Id,
+        [parameter(ParameterSetName = "nameSet", Mandatory = $TRUE)]
+        [string] $Name,
+        [parameter(Mandatory = $TRUE)]
+        [VirtualMachineControlAction] $Action
+    )
+
+    if ($Name)
+    {
+        $Vm = Get-Vm -Name $Name
+        $Id = $Vm.id
+    }
+
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/$( $Id )/action/$( $Action )" -RequestMethod POST
+    $Res
+}
+
+function Invoke-VmConsole
+{
+    [CmdletBinding(DefaultParameterSetName = "nameSet")]
+    param(
+        [parameter(ParameterSetName = "idSet", Mandatory = $TRUE)]
+        [string] $Id,
+        [parameter(ParameterSetName = "nameSet", Mandatory = $TRUE)]
+        [string] $Name
+    )
+
+    if ($Name)
+    {
+        $Vm = Get-Vm -Name $Name
+        $Id = $Vm.id
+    }
+
+    New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/$( $Id )/console" -RequestMethod POST
+    Start-Process $Res.result
+    $Res
+}
+
+function Get-VmSnapshots
+{
+    [CmdletBinding(DefaultParameterSetName = "nameSet")]
+    param(
+        [parameter(ParameterSetName = "idSet", Mandatory = $TRUE)]
+        [string] $Id,
+        [parameter(ParameterSetName = "nameSet", Mandatory = $TRUE)]
+        [string] $Name
+    )
+
+    if ($Name)
+    {
+        $Vm = Get-Vm -Name $Name
+        $Id = $Vm.id
+    }
+
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/$( $Id )/snapshot"
+    $Res
+}
+
+function New-VmSnapshot
+{
+    [CmdletBinding(DefaultParameterSetName = "nameSet")]
+    param(
+        [parameter(ParameterSetName = "idSet", Mandatory = $TRUE)]
+        [string] $Id,
+        [parameter(ParameterSetName = "nameSet", Mandatory = $TRUE)]
+        [string] $Name,
+        [parameter(Mandatory = $TRUE)]
+        [string] $Description,
+        [switch] $Memory,
+        [switch] $Quiesce
+    )
+
+    if ($Name)
+    {
+        $Vm = Get-Vm -Name $Name
+        $Id = $Vm.id
+    }
+
+    $Snapshot = @{
+        "name" = $Description
+        "memory" = $Memory.IsPresent
+        "quiesce" = $Quiesce.IsPresent
+    }
+
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/$( $Id )/snapshot" -RequestMethod POST -Body ($Snapshot | ConvertTo-Json)
+    $Res
+}
+
+function Remove-VmSnapshot
+{
+    [CmdletBinding(DefaultParameterSetName = "nameSet")]
+    param(
+        [parameter(ParameterSetName = "idSet", Mandatory = $TRUE)]
+        [string] $Id,
+        [parameter(ParameterSetName = "nameSet", Mandatory = $TRUE)]
+        [string] $Name,
+        [parameter(Mandatory = $TRUE)]
+        [int] $SnapshotId,
+        [switch] $RemoveChildren
+    )
+
+    if ($Name)
+    {
+        $Vm = Get-Vm -Name $Name
+        $Id = $Vm.id
+    }
+
+    $Snapshot = @{
+        "removeChildren" = $RemoveChildren.IsPresent;
+    }
+
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/$( $Id )/snapshot/$( $SnapshotId )" -RequestMethod DELETE -Body ($Snapshot | ConvertTo-Json)
+    $Res
+}
+
+function Reset-VmSnapshot
+{
+    [CmdletBinding(DefaultParameterSetName = "nameSet")]
+    param(
+        [parameter(ParameterSetName = "idSet", Mandatory = $TRUE)]
+        [string] $Id,
+        [parameter(ParameterSetName = "nameSet", Mandatory = $TRUE)]
+        [string] $Name,
+        [parameter(Mandatory = $TRUE)]
+        [int] $SnapshotId
+    )
+
+    if ($Name)
+    {
+        $Vm = Get-Vm -Name $Name
+        $Id = $Vm.id
+    }
+
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/$( $Id )/snapshot/$( $SnapshotId )" -RequestMethod PUT
+    $Res
+}
+
+function Get-VmTask
+{
+    [CmdletBinding()]
+    param(
+        [parameter(Mandatory = $TRUE)]
+        [string] $Id
+    )
+
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/task/$( $Id )"
+    $Res
+}
+
+function Wait-VmDeploy
+{
+    [CmdletBinding(DefaultParameterSetName = "nameSet")]
+    param(
+        [parameter(ParameterSetName = "idSet", Mandatory = $TRUE)]
+        [string] $Id,
+        [parameter(ParameterSetName = "nameSet", Mandatory = $TRUE)]
+        [string] $Name,
+        [int] $Timeout = 3600
+    )
+
+    if ($Name)
+    {
+        $Vm = Get-Vm -Name $Name
+        $Id = $Vm.id
+    }
+
+    $Timespan = New-TimeSpan -Seconds $Timeout
+    $State = ""
+
+    $Sw = [Diagnostics.Stopwatch]::StartNew()
+    while (!$State -eq "POWEREDON" -and !$State -eq "POWEREDOFF" -and $Sw.Elapsed -lt $Timespan)
+    {
+        $Vm = Get-Vm -Id $Id
+        $State = $Vm.state
+        Start-Sleep -Seconds 3
+    }
+
+    $Vm
+}
+
+function Wait-VmTask
+{
+    [CmdletBinding(DefaultParameterSetName = "taskSet")]
+    param(
+        [parameter(ParameterSetName = "taskSet", Mandatory = $TRUE, ValueFromPipeline = $TRUE)]
+        $Task,
+        [parameter(ParameterSetName = "idSet", Mandatory = $TRUE)]
+        [string] $Id,
+        [int] $Timeout = 60
+    )
+
+    $Timespan = New-TimeSpan -Seconds $Timeout
+    $Completed = $FALSE
+
+    if ($Task)
+    {
+        $Id = $Task.id
+    }
+
+    $Sw = [Diagnostics.Stopwatch]::StartNew()
+    while (!$Completed -and $Sw.Elapsed -lt $Timespan)
+    {
+        $Task = Get-VmTask -Id $Id
+        $Completed = $Task.completed
+        Start-Sleep -Seconds 1
+    }
+
+    $Task
 }
