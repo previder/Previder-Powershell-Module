@@ -515,6 +515,14 @@ function New-Vm
     if ($sourceVmObj)
     {
         $vm.sourceVirtualMachine = $SourceVmId
+        For ($diskIndex = 0; $diskIndex -lt $sourceVmObj.disks.Length; $diskIndex++)
+        {
+            $CloneDisk = $sourceVmObj.disks[$diskIndex]
+            if ($vm.disks.Length -gt $diskIndex)
+            {
+                $vm.disks[$diskIndex].id = $CloneDisk.id
+            }
+        }
     }
 
     $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/" -RequestMethod POST -Body ($Vm | ConvertTo-Json -Depth 10)
