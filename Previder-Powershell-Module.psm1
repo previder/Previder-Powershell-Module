@@ -17,7 +17,7 @@ Add-Type -TypeDefinition @"
 
 Add-Type -TypeDefinition @"
   public enum ProvisioningType {
-    NONE, CLOUD_INIT_OVF, CLOUD_INIT_GUEST_INFO, SYSPREP, SYSPREP_TEXT
+    NONE, CLOUD_INIT_OVF, SYSPREP, SYSPREP_TEXT, CONFIG_DRIVE_2, KICKSTART, CLOUD_INIT_OVF2, CLOUD_INIT_GUEST_INFO
   }
 "@
 
