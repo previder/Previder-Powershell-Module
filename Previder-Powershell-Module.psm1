@@ -392,7 +392,7 @@ function Set-Vm
 
     If ($TerminationProtection)
     {
-        $Vm.terminationProtection = $TerminationProtection
+        $Vm.terminationProtectionEnabled = $TerminationProtection
     }
 
     $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/$( $Id )" -RequestMethod PUT -Body ($Vm | ConvertTo-Json -Depth 10)
@@ -509,7 +509,7 @@ function New-Vm
 
     If ($TerminationProtection)
     {
-        $Vm.terminationProtection = $TerminationProtection
+        $Vm.terminationProtectionEnabled = $TerminationProtection
     }
 
     if ($sourceVmObj)
