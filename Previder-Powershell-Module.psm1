@@ -163,13 +163,52 @@ function Get-CustomerList
     $Res
 }
 
-function Get-Customer
+function Get-CustomerPage
 {
     [CmdletBinding()]
     param(
-        [parameter(Mandatory = $TRUE)]
-        [string] $Id
+        [Int16] $Page = 0,
+        [Int16] $Size = 10,
+        [string] $Query = "",
+        [string] $Sort = "name,asc"
     )
+
+    $QueryParams = @{
+        "page" = $Page
+        "size" = $Size
+        "query" = $Query
+        "sort" = $Sort
+    }
+
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/core/customer" -Body $QueryParams
+    $Res
+}
+
+function Get-Customer
+{
+    [CmdletBinding(DefaultParameterSetName = "nameSet")]
+    param(
+        [parameter(ParameterSetName = "idSet", Mandatory = $TRUE)]
+        [string] $Id,
+        [parameter(ParameterSetName = "nameSet", Mandatory = $TRUE)]
+        [string] $Name
+    )
+
+    If ($Name)
+    {
+        $CustomerPage = Get-CustomerPage -Query $Name -Size 1
+        if ($CustomerPage.totalElements -eq 0)
+        {
+            throw "Customer not found by name"
+        }
+        $Customer  = $CustomerPage.content[0]
+        if (!$Customer)
+        {
+            throw "Virtualmachine not found by name"
+        }
+        $Id = $Customer.id
+    }
+
     $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/customer/$( $Id )"
     $Res
 }
@@ -288,9 +327,12 @@ function Get-Vm
 
     If ($Name)
     {
-        $Vm = Get-VmList | Where-Object {
-            $_.name -eq $Name
+        $VmPage = Get-VmPage -Query $Name -Size 1
+        if ($VmPage.totalElements -eq 0)
+        {
+            throw "Virtualmachine not found by name"
         }
+        $Vm  = $VmPage.content[0]
         if (!$Vm)
         {
             throw "Virtualmachine not found by name"
