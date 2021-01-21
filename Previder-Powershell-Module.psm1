@@ -159,7 +159,16 @@ function Get-CustomerList
 {
     [CmdletBinding()]
     param()
-    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/customer"
+
+    $Res = @()
+    $Page = 0
+    do
+    {
+        $PageRes = Get-CustomerPage -Page $Page
+        $Res += $PageRes.content
+        $Page++
+    } until ($PageRes.totalPages -eq $Page -or $PageRes.content.Count -eq 0)
+
     $Res
 }
 
@@ -209,7 +218,7 @@ function Get-Customer
         $Id = $Customer.id
     }
 
-    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/customer/$( $Id )"
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/core/customer/$( $Id )"
     $Res
 }
 
