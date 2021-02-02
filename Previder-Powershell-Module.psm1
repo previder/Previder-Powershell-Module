@@ -210,7 +210,7 @@ function Get-Customer
         {
             throw "Customer not found by name"
         }
-        $Customer  = $CustomerPage.content[0]
+        $Customer = $CustomerPage.content[0]
         if (!$Customer)
         {
             throw "Virtualmachine not found by name"
@@ -315,12 +315,40 @@ function Get-VmTemplateList
     $Res
 }
 
+function Get-VmGroupPage
+{
+    [CmdletBinding()]
+    param(
+        [Int16] $Page = 0,
+        [Int16] $Size = 10,
+        [string] $Query = "",
+        [string] $Sort = "name,asc"
+    )
+
+    $QueryParams = @{
+        "page" = $Page
+        "size" = $Size
+        "query" = $Query
+        "sort" = $Sort
+    }
+
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/core/group/" -Body $QueryParams
+    $Res
+}
+
 function Get-VmGroupList
 {
     [CmdletBinding()]
     param()
 
-    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/configurationitem/group"
+    $Res = @()
+    $Page = 0
+    do
+    {
+        $PageRes = Get-VmGroupPage -Page $Page
+        $Res += $PageRes.content
+        $Page++
+    } until ($PageRes.totalPages -eq $Page -or $PageRes.content.Count -eq 0)
     $Res
 }
 
@@ -341,7 +369,7 @@ function Get-Vm
         {
             throw "Virtualmachine not found by name"
         }
-        $Vm  = $VmPage.content[0]
+        $Vm = $VmPage.content[0]
         if (!$Vm)
         {
             throw "Virtualmachine not found by name"
@@ -390,13 +418,12 @@ function Set-Vm
 
     if ($Group)
     {
-        $groupObj = Get-VmGroupList | Where-Object {
-            $_.name -eq $Group
-        }
-        if (!$groupObj)
+        $groupRes = Get-VmGroupPage -Query $Group
+        if ($groupRes.totalElements -eq 0)
         {
             Throw "group not found: " + $Group
         }
+        $groupObj = $groupRes.content[0]
     }
 
     if ($Cluster)
@@ -476,13 +503,12 @@ function New-Vm
 
     if ($Group)
     {
-        $groupObj = Get-VmGroupList | Where-Object {
-            $_.name -eq $Group
-        }
-        if (!$groupObj)
+        $groupRes = Get-VmGroupPage -Query $Group
+        if ($groupRes.totalElements -eq 0)
         {
             Throw "group not found: " + $Group
         }
+        $groupObj = $groupRes.content[0]
     }
 
     If ($Template)
