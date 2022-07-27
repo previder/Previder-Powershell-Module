@@ -99,6 +99,10 @@ Gets all the pages of virtualnetworks
 - Id (optional) - Id of the Virtual Server to open the console of (Either Id or Name is required)
 - Name (optional) - Name of the Virtual Server to open the console of (Either Id or Name is required)
 
+### Get-VmSnapshots
+- Id (optional) - Id of the Virtual Server for which you would like to list snapshots
+- Name (Optional) - Name of the Virtual Server for which you would like to list snapshots
+
 ### New-VmSnapshot
 - Id (optional) - Id of the Virtual Server to create a snapshot of (Either Id or Name is required)
 - Name (optional) - Name of the Virtual Server to create a snapshot of (Either Id or Name is required)
