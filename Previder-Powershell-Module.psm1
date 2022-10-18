@@ -410,6 +410,8 @@ function Set-Vm
         [string] $Name,
         [string] $Group,
         [string] $Cluster,
+        [string[]] $DeleteNetworkInterface,
+        [string[]] $DeleteDisk,
         [int] $CpuCores,
         [int] $MemoryMb,
         [string[]] $Tags,
@@ -441,6 +443,29 @@ function Set-Vm
     if ($Name)
     {
         $vm.name = $Name
+    }
+    if ($DeleteNetworkInterface)
+    {
+        [System.Collections.ArrayList]$currentNetworkInterfaces = $vm.networkInterfaces
+        ForEach ($deleteId in $DeleteNetworkInterface)
+        {
+            $interfaceToDelete = $currentNetworkInterfaces | Where-Object {
+                $_.id -eq $deleteId
+            }
+            $currentNetworkInterfaces.Remove($interfaceToDelete)
+        }
+        $vm.networkInterfaces = $currentNetworkInterfaces
+    }
+    if ($DeleteDisk)
+    {
+        [System.Collections.ArrayList]$currentDisks = $vm.disks
+        ForEach ($deleteId in $DeleteDisk)
+        {
+            $diskToDelete = $currentDisks | Where-Object {
+                $_.id -eq $deleteId
+            }
+            $diskToDelete | Add-Member -NotePropertyName delete -NotePropertyValue true
+        }
     }
 
     if ($CpuCores)
