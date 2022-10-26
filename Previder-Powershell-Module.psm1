@@ -410,6 +410,8 @@ function Set-Vm
         [string] $Name,
         [string] $Group,
         [string] $Cluster,
+        [Object[]] $NetworkInterfaces,
+        [Object[]] $Disks,
         [int] $CpuCores,
         [int] $MemoryMb,
         [string[]] $Tags,
@@ -441,6 +443,14 @@ function Set-Vm
     if ($Name)
     {
         $vm.name = $Name
+    }
+    if ($NetworkInterfaces)
+    {
+        $vm.networkInterfaces = $NetworkInterfaces
+    }
+    if ($Disks)
+    {
+        $vm.disks = $Disks
     }
 
     if ($CpuCores)
