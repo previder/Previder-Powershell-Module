@@ -74,6 +74,31 @@ Gets all the pages of virtualnetworks
 - MemoryMb (optional) - Integer of MBs of memory to set the VM to
 - TerminationProtection (optional) - Boolean of the termination protection
 - Tags (optional) - List of strings to set specific tags on the Virtual Server
+- Disks (optional) - List of disks that will be used by the server.
+- NetworkInterfaces (optional) - List of network interfaces that will be used by the server. Interfaces not included in the list will be deleted.
+
+#### Example: Edit a list of network interfaces
+Set-Vm -Id "630f560b37cd6574d8fff3f3" -NetworkInterfaces @{
+"id"="630f560cd56c7b4ef50ab6a0"                          
+"network"="public-wan"      
+"connected"= "true"
+"label" = "example1" }, @{
+"id"="630f560cd56c7b4ef40ab7a0"                          
+"network"="public-wan"      
+"connected"= "true"
+"label" = "example2" }
+
+#### Example: Deleting a disk
+Set-Vm -Id "630f560b37cd6574d8fff3f3" -Disks @{             
+"id" = "630f560cd56c5b4ef50ab67e"                        
+"size" = "20480"            
+"label" = "Example"
+"delete" = "true"        
+}  
+
+
+
+
 
 ### New-Vm
 - Name (required) - Name to set the Virtual Server to
