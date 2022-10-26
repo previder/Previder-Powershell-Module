@@ -83,14 +83,14 @@ Set-Vm -Id "630f560b37cd6574d8fff3f3" -NetworkInterfaces @{
 "network"="public-wan"      
 "connected"= "true"
 "label" = "example1" }, @{
-"id"="630f560cd56c7b4ef50ab6a0"                          
+"id"="630f560cd56c7b4ef40ab7a0"                          
 "network"="public-wan"      
 "connected"= "true"
 "label" = "example2" }
 
 #### Example: Deleting a disk
 Set-Vm -Id "630f560b37cd6574d8fff3f3" -Disks @{             
-"id" = "630f560cd56c7b4ef50ab69e"                        
+"id" = "630f560cd56c5b4ef50ab67e"                        
 "size" = "20480"            
 "label" = "Example"
 "delete" = "true"        
