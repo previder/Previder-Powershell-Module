@@ -302,8 +302,19 @@ function Get-VmClusterList
     [CmdletBinding()]
     param()
 
-    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/computecluster/"
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/computecluster"
     $Res
+}
+
+
+function Get-VmBackupProfileList 
+{
+   [CmdletBinding()]
+   param()
+   $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/backupprofile"
+   $Res
+  
+
 }
 
 function Get-VmTemplateList
@@ -311,7 +322,7 @@ function Get-VmTemplateList
     [CmdletBinding()]
     param()
 
-    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/template/"
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/template"
     $Res
 }
 
@@ -407,6 +418,7 @@ function Set-Vm
     param(
         [parameter(Mandatory = $TRUE)]
         [string] $Id,
+        [string] $BackupProfile,
         [string] $Name,
         [string] $Group,
         [string] $Cluster,
@@ -476,6 +488,10 @@ function Set-Vm
     if ($groupObj)
     {
         $vm.group = $groupObj.name
+    }
+    if($BackupProfile)
+    {
+    	$vm.backupProfile = $BackupProfile
     }
 
     If ($TerminationProtection)
@@ -612,7 +628,7 @@ function New-Vm
         }
     }
 
-    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/" -RequestMethod POST -Body ($Vm | ConvertTo-Json -Depth 10)
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine" -RequestMethod POST -Body ($Vm | ConvertTo-Json -Depth 10)
     $Res
 }
 
