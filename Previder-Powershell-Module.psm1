@@ -430,7 +430,7 @@ function Set-Vm
         [boolean] $TerminationProtection
     )
 
-    if ($Group)
+    if ($PSBoundParameters.ContainsKey("Group"))
     {
         $groupRes = Get-VmGroupPage -Query $Group
         if ($groupRes.totalElements -eq 0)
@@ -440,7 +440,7 @@ function Set-Vm
         $groupObj = $groupRes.content[0]
     }
 
-    if ($Cluster)
+    if ($PSBoundParameters.ContainsKey("Cluster"))
     {
         $computeClusterObj = Get-VmClusterList | Where-Object {
             $_.name -eq $Cluster
@@ -452,49 +452,49 @@ function Set-Vm
     }
 
     $vm = Get-Vm -Id $Id
-    if ($Name)
+    if ($PSBoundParameters.ContainsKey("Name"))
     {
         $vm.name = $Name
     }
-    if ($NetworkInterfaces)
+    if ($PSBoundParameters.ContainsKey("NetworkInterfaces"))
     {
         $vm.networkInterfaces = $NetworkInterfaces
     }
-    if ($Disks)
+    if ($PSBoundParameters.ContainsKey("Disks"))
     {
         $vm.disks = $Disks
     }
 
-    if ($CpuCores)
+    if ($PSBoundParameters.ContainsKey("CpuCores"))
     {
         $vm.cpuCores = $CpuCores
     }
 
-    if ($MemoryMb)
+    if ($PSBoundParameters.ContainsKey("MemoryMb"))
     {
         $vm.memory = $MemoryMb
     }
 
-    if ($computeClusterObj)
+    if ($PSBoundParameters.ContainsKey("computeClusterObj"))
     {
         $vm.computeCluster = $computeClusterObj.name
     }
 
-    if ($Tags)
+    if ($PSBoundParameters.ContainsKey("Tags"))
     {
         $vm.tags = $Tags
     }
 
-    if ($groupObj)
+    if ($PSBoundParameters.ContainsKey("groupObj"))
     {
         $vm.group = $groupObj.name
     }
-    if($BackupProfile)
+    if($PSBoundParameters.ContainsKey("BackupProfile"))
     {
     	$vm.backupProfile = $BackupProfile
     }
 
-    If ($TerminationProtection)
+    If ($PSBoundParameters.ContainsKey("TerminationProtection"))
     {
         $Vm.terminationProtectionEnabled = $TerminationProtection
     }
