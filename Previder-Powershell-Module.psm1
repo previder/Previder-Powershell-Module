@@ -317,6 +317,18 @@ function Get-VmBackupProfileList
 
 }
 
+function Get-VmBackup
+{
+    [CmdletBinding()]
+    param(
+        [parameter(Mandatory = $TRUE)]
+        [string] $Id
+    )
+
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/$( $Id )/backup"
+    $Res
+}
+
 function Get-VmTemplateList
 {
     [CmdletBinding()]
