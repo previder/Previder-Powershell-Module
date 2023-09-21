@@ -404,6 +404,19 @@ function Get-Vm
     $Res
 }
 
+function Update-VmHardware
+{
+    [CmdletBinding(DefaultParameterSetName = "nameSet")]
+    param(
+        [parameter(ParameterSetName = "idSet", Mandatory = $TRUE)]
+        [string] $Id
+    )
+
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/$( $Id )/upgradehardware" -RequestMethod PUT
+    $Res
+}
+
+
 function Remove-Vm
 {
     [CmdletBinding(DefaultParameterSetName = "nameSet")]
