@@ -34,6 +34,15 @@ The following arguments are supported
 - UseOTP - Required when manually sending your OTP challenge code
 - Uri - Only used when connecting to an alternative environment (defaults to https://portal.previder.nl/api)
 
+### Set-AnnexusRateLimitHandling
+
+Change how this module handles hitting the API rate limit for the Annexus API.
+
+- WaitForRateLimitReset -  $true/$false (defaults to true). Defines wether the module should delay requests if the rate limit is about to be hit. If this is set to false, hitting the rate limit will throw an error.  
+- RateLimitWaitThreshold - Number (0-1500, default 100). When the remaining amount of requests allowed is below this value and WaitForRateLimitReset is set to true, the module will wait until the rate limit is reset. 
+
+
+
 ### Set-HandleByCustomer
 - Id (optional) - Id of the subcustomer which you loke to switch to (to clear this setting, only call base function)
 

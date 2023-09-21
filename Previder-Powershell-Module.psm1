@@ -6,6 +6,9 @@ $Annexus = @{
     BaseUri = "https://portal.previder.nl";
     Uri = "https://portal.previder.nl/api";
     Headers = @{ };
+    LastResponseHeaders = @{};
+    WaitForRateLimitReset = $true;
+    RateLimitWaitThreshold = 100;
 }
 
 Add-Type -TypeDefinition @"
@@ -33,16 +36,35 @@ function New-AnnexusWebRequest
 
     $DefaultRequestMethod = "application/json"
 
-    if ($Body)
-    {
-        $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method $RequestMethod -Uri $Uri -ContentType $DefaultRequestMethod -Body $Body
-    }
-    else
-    {
-        $Res = Invoke-RestMethod -WebSession $Annexus.Session -Headers $Annexus.Headers -Method $RequestMethod -Uri $Uri -ContentType $DefaultRequestMethod
+    if($Annexus.LastResponseHeaders -and $Annexus.LastResponseHeaders['X-Rate-Limit-Remaining'] -and $Annexus['WaitForRateLimitReset']) {
+        $RateLimitRequestsRemaining = $Annexus.LastResponseHeaders['X-Rate-Limit-Remaining']
+        $RateLimitResetTimeUnix = $Annexus.LastResponseHeaders['X-Rate-Limit-Reset']
+        $RateLimitResetTime = (Get-Date "01.01.1970").AddSeconds($RateLimitResetTimeUnix)
+        $RateLimitResetTime = $RateLimitResetTime.AddSeconds((get-timezone).GetUtcOffset($RateLimitResetTime).TotalSeconds)
+
+        $RateLimitSecondsUntilReset = (New-TimeSpan -Start (get-date) -End $RateLimitResetTime).TotalSeconds
+
+        if([int]$RateLimitRequestsRemaining -lt $Annexus['RateLimitWaitThreshold']) {
+            write-warning "Waiting for rate limit expiry. Requests remaining: $RateLimitRequestsRemaining. Time remaining $RateLimitSecondsUntilReset seconds"
+            Start-Sleep -Seconds ($RateLimitSecondsUntilReset + 10)
+        }
     }
 
-    $Res
+        if ($Body)
+        {
+            $Res = Invoke-WebRequest -WebSession $Annexus.Session -Headers $Annexus.Headers -Method $RequestMethod -Uri $Uri -ContentType $DefaultRequestMethod -Body $Body
+        }
+        else
+        {
+            $Res = Invoke-WebRequest -WebSession $Annexus.Session -Headers $Annexus.Headers -Method $RequestMethod -Uri $Uri -ContentType $DefaultRequestMethod
+        }
+
+
+    $Annexus.LastResponseHeaders = $Res.Headers
+
+    if($Res.Content) {
+        return $($Res.Content | convertfrom-json)
+    }
 
 }
 
@@ -118,6 +140,24 @@ function Connect-Annexus
 
         Write-Host "Logged in successfully"
         $Res
+    }
+}
+
+Function Set-AnnexusRateLimitHandling
+{
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$false)]
+        [Boolean]$WaitForRateLimitReset = $null,
+        [Parameter(Mandatory=$false)]
+        [int]$RateLimitWaitThreshold = $null
+    )
+    if($WaitForRateLimitReset -ne $null) {
+        $Annexus['WaitForRateLimitReset'] = $WaitForRateLimitReset
+    }
+
+    if($RateLimitWaitThreshold -ne $null) {
+        $Annexus['RateLimitWaitThreshold'] = $RateLimitWaitThreshold
     }
 }
 
