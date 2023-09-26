@@ -37,16 +37,19 @@ function New-AnnexusWebRequest
     $DefaultRequestMethod = "application/json"
 
     if($Annexus.LastResponseHeaders -and $Annexus.LastResponseHeaders['X-Rate-Limit-Remaining'] -and $Annexus['WaitForRateLimitReset']) {
-        $RateLimitRequestsRemaining = $Annexus.LastResponseHeaders['X-Rate-Limit-Remaining']
-        $RateLimitResetTimeUnix = $Annexus.LastResponseHeaders['X-Rate-Limit-Reset']
-        $RateLimitResetTime = (Get-Date "01.01.1970").AddSeconds($RateLimitResetTimeUnix)
-        $RateLimitResetTime = $RateLimitResetTime.AddSeconds((get-timezone).GetUtcOffset($RateLimitResetTime).TotalSeconds)
+        $RateLimitRequestsRemaining = $Annexus.LastResponseHeaders['X-Rate-Limit-Remaining'] -as [int]
+        $RateLimitResetTimeUnix = $Annexus.LastResponseHeaders['X-Rate-Limit-Reset'] -As [int]
 
-        $RateLimitSecondsUntilReset = (New-TimeSpan -Start (get-date) -End $RateLimitResetTime).TotalSeconds
+        if($null -ne $RateLimitRequestsRemaining -and $null -ne $RateLimitResetTimeUnix) {
+            $RateLimitResetTime = (Get-Date "01.01.1970").AddSeconds($RateLimitResetTimeUnix)
+            $RateLimitResetTime = $RateLimitResetTime.AddSeconds((get-timezone).GetUtcOffset($RateLimitResetTime).TotalSeconds)
 
-        if([int]$RateLimitRequestsRemaining -lt $Annexus['RateLimitWaitThreshold']) {
-            write-warning "Waiting for rate limit expiry. Requests remaining: $RateLimitRequestsRemaining. Time remaining $RateLimitSecondsUntilReset seconds"
-            Start-Sleep -Seconds ($RateLimitSecondsUntilReset + 10)
+            $RateLimitSecondsUntilReset = (New-TimeSpan -Start (get-date) -End $RateLimitResetTime).TotalSeconds
+
+            if([int]$RateLimitRequestsRemaining -lt $Annexus['RateLimitWaitThreshold']) {
+                write-warning "Waiting for rate limit expiry. Requests remaining: $RateLimitRequestsRemaining. Time remaining $RateLimitSecondsUntilReset seconds"
+                Start-Sleep -Seconds ($RateLimitSecondsUntilReset + 10)
+            }
         }
     }
 
