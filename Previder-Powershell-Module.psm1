@@ -804,11 +804,12 @@ function Remove-VmSnapshot
         $Id = $Vm.id
     }
 
-    $Snapshot = @{
-        "removeChildren" = $RemoveChildren.IsPresent;
+     if ($RemoveChildren.IsPresent)
+    {
+        $Parameters = "?removeChildren=true"
     }
 
-    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/$( $Id )/snapshot/$( $SnapshotId )" -RequestMethod DELETE -Body ($Snapshot | ConvertTo-Json)
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/$( $Id )/snapshot/$( $SnapshotId )$( $Parameters )" -RequestMethod DELETE
     $Res
 }
 
