@@ -124,6 +124,12 @@ Set-Vm -Id "630f560b37cd6574d8fff3f3" -Disks @{
 - TerminationProtection (optional) - Boolean of the termination protection
 - Tags (optional) - List of strings to set specific tags on the Virtual Server
 
+### Update-VmHardware
+- Id (required) - Id of the Virtual Server to upgrade
+
+Upgrades the hardware to the newest version. Requires the virtual server to be turned off. **Should only be used if the newest version is absolutely necessary. This can potentially break the virtual server!**
+[More info](https://kb.vmware.com/s/article/1003746).
+
 ### Invoke-Vm
 - Id (optional) - Id of the Virtual Server to send the action to (Either Id or Name is required)
 - Name (optional) - Name of the Virtual Server to send the action to (Either Id or Name is required)
