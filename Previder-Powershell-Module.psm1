@@ -6,7 +6,7 @@ $Annexus = @{
     BaseUri = "https://portal.previder.nl";
     Uri = "https://portal.previder.nl/api";
     Headers = @{ };
-    LastResponseHeaders = @{};
+    LastResponseHeaders = @{ };
     WaitForRateLimitReset = $true;
     RateLimitWaitThreshold = 100;
 }
@@ -36,37 +36,41 @@ function New-AnnexusWebRequest
 
     $DefaultRequestMethod = "application/json"
 
-    if($Annexus.LastResponseHeaders -and $Annexus.LastResponseHeaders['X-Rate-Limit-Remaining'] -and $Annexus['WaitForRateLimitReset']) {
+    if ($Annexus.LastResponseHeaders -and $Annexus.LastResponseHeaders['X-Rate-Limit-Remaining'] -and $Annexus['WaitForRateLimitReset'])
+    {
         $RateLimitRequestsRemaining = $Annexus.LastResponseHeaders['X-Rate-Limit-Remaining'] -as [int]
         $RateLimitResetTimeUnix = $Annexus.LastResponseHeaders['X-Rate-Limit-Reset'] -As [int]
 
-        if($null -ne $RateLimitRequestsRemaining -and $null -ne $RateLimitResetTimeUnix) {
+        if ($null -ne $RateLimitRequestsRemaining -and $null -ne $RateLimitResetTimeUnix)
+        {
             $RateLimitResetTime = (Get-Date "01.01.1970").AddSeconds($RateLimitResetTimeUnix)
             $RateLimitResetTime = $RateLimitResetTime.AddSeconds((get-timezone).GetUtcOffset($RateLimitResetTime).TotalSeconds)
 
             $RateLimitSecondsUntilReset = (New-TimeSpan -Start (get-date) -End $RateLimitResetTime).TotalSeconds
 
-            if([int]$RateLimitRequestsRemaining -lt $Annexus['RateLimitWaitThreshold']) {
+            if ([int]$RateLimitRequestsRemaining -lt $Annexus['RateLimitWaitThreshold'])
+            {
                 write-warning "Waiting for rate limit expiry. Requests remaining: $RateLimitRequestsRemaining. Time remaining $RateLimitSecondsUntilReset seconds"
                 Start-Sleep -Seconds ($RateLimitSecondsUntilReset + 10)
             }
         }
     }
 
-        if ($Body)
-        {
-            $Res = Invoke-WebRequest -WebSession $Annexus.Session -Headers $Annexus.Headers -Method $RequestMethod -Uri $Uri -ContentType $DefaultRequestMethod -Body $Body
-        }
-        else
-        {
-            $Res = Invoke-WebRequest -WebSession $Annexus.Session -Headers $Annexus.Headers -Method $RequestMethod -Uri $Uri -ContentType $DefaultRequestMethod
-        }
+    if ($Body)
+    {
+        $Res = Invoke-WebRequest -WebSession $Annexus.Session -Headers $Annexus.Headers -Method $RequestMethod -Uri $Uri -ContentType $DefaultRequestMethod -Body $Body
+    }
+    else
+    {
+        $Res = Invoke-WebRequest -WebSession $Annexus.Session -Headers $Annexus.Headers -Method $RequestMethod -Uri $Uri -ContentType $DefaultRequestMethod
+    }
 
 
     $Annexus.LastResponseHeaders = $Res.Headers
 
-    if($Res.Content) {
-        return $($Res.Content | convertfrom-json)
+    if ($Res.Content)
+    {
+        return $( $Res.Content | convertfrom-json )
     }
 
 }
@@ -150,16 +154,18 @@ Function Set-AnnexusRateLimitHandling
 {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [Boolean]$WaitForRateLimitReset = $null,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [int]$RateLimitWaitThreshold = $null
     )
-    if($WaitForRateLimitReset -ne $null) {
+    if ($WaitForRateLimitReset -ne $null)
+    {
         $Annexus['WaitForRateLimitReset'] = $WaitForRateLimitReset
     }
 
-    if($RateLimitWaitThreshold -ne $null) {
+    if ($RateLimitWaitThreshold -ne $null)
+    {
         $Annexus['RateLimitWaitThreshold'] = $RateLimitWaitThreshold
     }
 }
@@ -350,13 +356,13 @@ function Get-VmClusterList
 }
 
 
-function Get-VmBackupProfileList 
+function Get-VmBackupProfileList
 {
-   [CmdletBinding()]
-   param()
-   $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/backupprofile"
-   $Res
-  
+    [CmdletBinding()]
+    param()
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/backupprofile"
+    $Res
+
 
 }
 
@@ -495,10 +501,12 @@ function Set-Vm
         [int] $CpuCores,
         [int] $MemoryMb,
         [string[]] $Tags,
-        [boolean] $TerminationProtection
+        [boolean] $TerminationProtection,
+        [boolean] $SecureBoot,
+        [boolean] $TPM
     )
 
-    if ($PSBoundParameters.ContainsKey("Group"))
+    if ( $PSBoundParameters.ContainsKey("Group"))
     {
         $groupRes = Get-VmGroupPage -Query $Group
         if ($groupRes.totalElements -eq 0)
@@ -508,7 +516,7 @@ function Set-Vm
         $groupObj = $groupRes.content[0]
     }
 
-    if ($PSBoundParameters.ContainsKey("Cluster"))
+    if ( $PSBoundParameters.ContainsKey("Cluster"))
     {
         $computeClusterObj = Get-VmClusterList | Where-Object {
             $_.name -eq $Cluster
@@ -520,51 +528,60 @@ function Set-Vm
     }
 
     $vm = Get-Vm -Id $Id
-    if ($PSBoundParameters.ContainsKey("Name"))
+    if ( $PSBoundParameters.ContainsKey("Name"))
     {
         $vm.name = $Name
     }
-    if ($PSBoundParameters.ContainsKey("NetworkInterfaces"))
+    if ( $PSBoundParameters.ContainsKey("NetworkInterfaces"))
     {
         $vm.networkInterfaces = $NetworkInterfaces
     }
-    if ($PSBoundParameters.ContainsKey("Disks"))
+    if ( $PSBoundParameters.ContainsKey("Disks"))
     {
         $vm.disks = $Disks
     }
 
-    if ($PSBoundParameters.ContainsKey("CpuCores"))
+    if ( $PSBoundParameters.ContainsKey("CpuCores"))
     {
         $vm.cpuCores = $CpuCores
     }
 
-    if ($PSBoundParameters.ContainsKey("MemoryMb"))
+    if ( $PSBoundParameters.ContainsKey("MemoryMb"))
     {
         $vm.memory = $MemoryMb
     }
 
-    if ($PSBoundParameters.ContainsKey("computeClusterObj"))
+    if ( $PSBoundParameters.ContainsKey("computeClusterObj"))
     {
         $vm.computeCluster = $computeClusterObj.name
     }
 
-    if ($PSBoundParameters.ContainsKey("Tags"))
+    if ( $PSBoundParameters.ContainsKey("Tags"))
     {
         $vm.tags = $Tags
     }
 
-    if ($PSBoundParameters.ContainsKey("groupObj"))
+    if ( $PSBoundParameters.ContainsKey("groupObj"))
     {
         $vm.group = $groupObj.name
     }
-    if($PSBoundParameters.ContainsKey("BackupProfile"))
+    if ( $PSBoundParameters.ContainsKey("BackupProfile"))
     {
-    	$vm.backupProfile = $BackupProfile
+        $vm.backupProfile = $BackupProfile
     }
 
-    If ($PSBoundParameters.ContainsKey("TerminationProtection"))
+    If ( $PSBoundParameters.ContainsKey("TerminationProtection"))
     {
         $Vm.terminationProtectionEnabled = $TerminationProtection
+    }
+    if ( $PSBoundParameters.ContainsKey("TPM"))
+    {
+        $vm | Add-Member -NotePropertyName tpm -NotePropertyValue $TPM
+    }
+
+    if ( $PSBoundParameters.ContainsKey("SecureBoot"))
+    {
+        $vm | Add-Member -NotePropertyName secureBoot -NotePropertyValue $SecureBoot
     }
 
     $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/$( $Id )" -RequestMethod PUT -Body ($Vm | ConvertTo-Json -Depth 10)
@@ -593,7 +610,12 @@ function New-Vm
         [int[]] $Disks,
         [string[]] $Tags,
         [boolean] $TerminationProtection,
-        [string] $BackupProfile
+        [string] $BackupProfile,
+        [string] $GuestId,
+        [boolean] $FirmwareEfi,
+        [boolean] $SecureBoot,
+        [boolean] $TPM
+
     )
 
     if ($Group)
@@ -605,8 +627,8 @@ function New-Vm
         }
         $groupObj = $groupRes.content[0]
     }
-    
-   
+
+
 
     If ($Template)
     {
@@ -668,17 +690,50 @@ function New-Vm
         "userData" = $UserData;
         "computeCluster" = $computeClusterObj.name;
         "provisioningType" = $ProvisioningType;
-        "tags" = $Tags
+        "tags" = $Tags;
+
     }
+
+    if($GuestId) {
+        $vm.guestId = $GuestId
+    }
+
+    if ($FirmwareEfi)
+    {
+        if (!$PSBoundParameters.ContainsKey("GuestId"))
+        {
+            throw "A guest id is nessecary to enable EFI"
+        }
+        $vm.firmwareEfi = $FirmwareEfi
+    }
+
+    if ($SecureBoot)
+    {
+        if (!$FirmwareEfi)
+        {
+            Throw "FirmwareEfi needs to be true in order to enable secure boot"
+        }
+        $vm.secureBoot = $SecureBoot;
+    }
+    if ($TPM)
+    {
+        if (!$FirmwareEfi)
+        {
+            Throw "FirmwareEfi needs to be true in order to include TPM"
+        }
+        $vm.tpm = $TPM;
+    }
+
+
 
     if ($groupObj)
     {
         $vm.group = $groupObj.name
     }
-    
-     if($BackupProfile)
+
+    if ($BackupProfile)
     {
-    	$vm.backupProfile = $BackupProfile
+        $vm.backupProfile = $BackupProfile
     }
 
     if ($templateObj)
@@ -820,7 +875,7 @@ function Remove-VmSnapshot
         $Id = $Vm.id
     }
 
-     if ($RemoveChildren.IsPresent)
+    if ($RemoveChildren.IsPresent)
     {
         $Parameters = "?removeChildren=true"
     }
