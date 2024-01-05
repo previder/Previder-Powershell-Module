@@ -171,6 +171,8 @@ Upgrades the hardware to the newest version. Requires the virtual server to be t
 - Id (optional) - Id of the task to wait for completion
 - Task (optional) - Task to wait for completion
 
+### Get-VmBackup
+- Id (required) - Id of the Virtual Server for which to list backup profile and metadata.
 
 ## Motivation
 
