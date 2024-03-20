@@ -499,6 +499,7 @@ function Set-Vm
         [Object[]] $NetworkInterfaces,
         [Object[]] $Disks,
         [int] $CpuCores,
+        [int] $CpuSockets,
         [int] $MemoryMb,
         [string[]] $Tags,
         [boolean] $TerminationProtection,
@@ -561,6 +562,28 @@ function Set-Vm
         $vm.tags = $Tags
     }
 
+    if ($CpuSockets)
+    {
+
+        if ($CpuCores)
+        {
+            if ($CpuCores % $CpuSockets -gt 0)
+            {
+                throw "Invalid number of cpu sockets, cpu cores must be divisible by cpu sockets with no remainders"
+            }
+        }
+        else
+        {
+            if ($vm.CpuCores % $CpuSockets -gt 0)
+            {
+                throw "Invalid number of cpu sockets, cpu cores must be divisible by cpu sockets with no remainders"
+            }
+        }
+
+
+        $vm.cpuSockets = $CpuSockets
+    }
+
     if ( $PSBoundParameters.ContainsKey("groupObj"))
     {
         $vm.group = $groupObj.name
@@ -601,6 +624,7 @@ function New-Vm
         [parameter(ParameterSetName = "copySet", Mandatory = $TRUE)]
         [string] $SourceVmId,
         [int] $CpuCores = 1,
+        [int] $CpuSockets = 1,
         [int] $MemoryMb = 1024,
         [ProvisioningType] $ProvisioningType,
         [string] $UserData,
@@ -648,7 +672,6 @@ function New-Vm
             Throw "source vm not found: " + $SourceVmId
         }
     }
-
     $computeClusterObj = Get-VmClusterList | Where-Object {
         $_.name -eq $Cluster
     }
@@ -684,6 +707,7 @@ function New-Vm
     $vm = @{
         "name" = $Name;
         "cpuCores" = $CpuCores;
+        "cpuSockets" = $CpuSockets;
         "memory" = $MemoryMb;
         "networkInterfaces" = $networkInterfaces;
         "disks" = $virtualDisks;
@@ -694,8 +718,22 @@ function New-Vm
 
     }
 
-    if($GuestId) {
+    if ($GuestId)
+    {
         $vm.guestId = $GuestId
+    }
+
+    if ($CpuSockets)
+    {
+        if (!$PSBoundParameters.ContainsKey("CpuCores"))
+        {
+            throw "Cpu cores need to be defined when assigning cpu sockets"
+        }
+
+        if ($CpuCores % $CpuSockets -gt 0)
+        {
+            throw "Invalid number of cpu sockets, cpu cores must be divisible by cpu sockets with no remainders"
+        }
     }
 
     if ($FirmwareEfi)
