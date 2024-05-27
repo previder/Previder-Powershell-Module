@@ -174,6 +174,9 @@ Upgrades the hardware to the newest version. Requires the virtual server to be t
 ### Get-VmBackup
 - Id (required) - Id of the Virtual Server for which to list backup profile and metadata.
 
+### Get-VMBackupOverview
+- Limit_backups (optional) - Amount of backups to list per VM
+
 ## Motivation
 
 As projects besides e.g. the Previder Portal, the development team at Previder develops and maintains multiple projects aiming to integrate the previder IaaS environment.
