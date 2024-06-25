@@ -623,6 +623,8 @@ function New-Vm
         [string] $Template,
         [parameter(ParameterSetName = "copySet", Mandatory = $TRUE)]
         [string] $SourceVmId,
+        [parameter(ParameterSetName = "guestIdSet", Mandatory = $TRUE)]
+        [string] $GuestId,
         [int] $CpuCores = 1,
         [int] $CpuSockets = 1,
         [int] $MemoryMb = 1024,
@@ -635,7 +637,7 @@ function New-Vm
         [string[]] $Tags,
         [boolean] $TerminationProtection,
         [string] $BackupProfile,
-        [string] $GuestId,
+       
         [boolean] $FirmwareEfi,
         [boolean] $SecureBoot,
         [boolean] $TPM
