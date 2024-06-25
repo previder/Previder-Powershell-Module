@@ -378,6 +378,21 @@ function Get-VmBackup
     $Res
 }
 
+function Get-VMBackupOverview
+{
+    [CmdletBinding()]
+    param(
+        [parameter(Mandatory = $FALSE)]
+        [int] $limit_backups = 5
+    )
+
+    $QueryParams = @{
+        "limit-backups" = $limit_backups
+    }
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/backupoverview" -Body $QueryParams
+    $Res
+}
+
 function Get-VmTemplateList
 {
     [CmdletBinding()]
