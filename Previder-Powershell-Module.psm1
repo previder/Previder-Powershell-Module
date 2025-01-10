@@ -640,7 +640,8 @@ function New-Vm
        
         [boolean] $FirmwareEfi,
         [boolean] $SecureBoot,
-        [boolean] $TPM
+        [boolean] $TPM,
+	    [boolean] $PowerOnAfterClone
 
     )
 
@@ -765,6 +766,10 @@ function New-Vm
     }
 
 
+    if ($PowerOnAfterClone) 
+    {
+	    $vm.powerOnAfterClone = $PowerOnAfterClone
+    }
 
     if ($groupObj)
     {
