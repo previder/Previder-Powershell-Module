@@ -999,7 +999,7 @@ function Wait-VmDeploy
     $State = ""
 
     $Sw = [Diagnostics.Stopwatch]::StartNew()
-    while (!$State -eq "POWEREDON" -and !$State -eq "POWEREDOFF" -and $Sw.Elapsed -lt $Timespan)
+    while ($State -ne "POWEREDON" -and $State -ne "POWEREDOFF" -and $Sw.Elapsed -lt $Timespan)
     {
         $Vm = Get-Vm -Id $Id
         $State = $Vm.state
