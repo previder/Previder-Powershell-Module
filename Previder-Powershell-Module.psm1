@@ -278,7 +278,8 @@ function Get-VmPage
         [Int16] $Page = 0,
         [Int16] $Size = 10,
         [string] $Query = "",
-        [string] $Sort = "name,asc"
+        [string] $Sort = "name,asc",
+        [string] $Tags
     )
 
     $QueryParams = @{
@@ -286,6 +287,10 @@ function Get-VmPage
         "size" = $Size
         "query" = $Query
         "sort" = $Sort
+    }
+
+    if ($Tags) {
+        $QueryParams.Add("tags", $tags)
     }
 
     $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/" -Body $QueryParams
@@ -296,13 +301,16 @@ function Get-VmPage
 function Get-VmList
 {
     [CmdletBinding()]
-    param()
+    param(
+        [string] $Tags = ""
+    )
 
     $Res = @()
     $Page = 0
+
     do
     {
-        $PageRes = Get-VmPage -Page $Page
+        $PageRes = Get-VmPage -Page $Page -Tags $Tags
         $Res += $PageRes.content
         $Page++
     } until ($PageRes.totalPages -eq $Page -or $PageRes.content.Count -eq 0)
@@ -624,6 +632,23 @@ function Set-Vm
 
     $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/$( $Id )" -RequestMethod PUT -Body ($Vm | ConvertTo-Json -Depth 10)
     $Res
+}
+
+function Set-VmComment
+{
+    [CmdletBinding()]
+    param(
+        [parameter(Mandatory = $TRUE)]
+        [string] $Id,
+        [string] $Comment
+
+    )
+
+    $Body = @{
+        "comment" = $Comment
+    }
+
+    $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/$( $Id )/comments" -RequestMethod PUT -Body ($Body | ConvertTo-Json -Depth 10)
 }
 
 function New-Vm
