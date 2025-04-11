@@ -370,8 +370,6 @@ function Get-VmBackupProfileList
     param()
     $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/backupprofile"
     $Res
-
-
 }
 
 function Get-VmBackup
@@ -527,7 +525,8 @@ function Set-Vm
         [string[]] $Tags,
         [boolean] $TerminationProtection,
         [boolean] $SecureBoot,
-        [boolean] $TPM
+        [boolean] $TPM,
+        [boolean] $AutoUpdateVmWareTools
     )
 
     if ( $PSBoundParameters.ContainsKey("Group"))
@@ -620,9 +619,15 @@ function Set-Vm
     {
         $Vm.terminationProtectionEnabled = $TerminationProtection
     }
+   
     if ( $PSBoundParameters.ContainsKey("TPM"))
     {
         $vm | Add-Member -NotePropertyName tpm -NotePropertyValue $TPM
+    }
+
+    if ( $PSBoundParameters.ContainsKey("AutoUpdateVmWareTools"))
+    {
+        $vm | Add-Member -NotePropertyName autoUpdateVmWareTools -NotePropertyValue $AutoUpdateVmWareTools
     }
 
     if ( $PSBoundParameters.ContainsKey("SecureBoot"))
@@ -677,12 +682,10 @@ function New-Vm
         [string[]] $Tags,
         [boolean] $TerminationProtection,
         [string] $BackupProfile,
-       
         [boolean] $FirmwareEfi,
         [boolean] $SecureBoot,
         [boolean] $TPM,
-	    [boolean] $PowerOnAfterClone
-
+        [boolean] $PowerOnAfterClone
     )
 
     if ($Group)
@@ -694,8 +697,6 @@ function New-Vm
         }
         $groupObj = $groupRes.content[0]
     }
-
-
 
     If ($Template)
     {
@@ -718,6 +719,7 @@ function New-Vm
     $computeClusterObj = Get-VmClusterList | Where-Object {
         $_.name -eq $Cluster
     }
+
     if (!$computeClusterObj)
     {
         Throw "cluster not found: " + $Cluster
@@ -758,7 +760,6 @@ function New-Vm
         "computeCluster" = $computeClusterObj.name;
         "provisioningType" = $ProvisioningType;
         "tags" = $Tags;
-
     }
 
     if ($GuestId)
@@ -796,6 +797,7 @@ function New-Vm
         }
         $vm.secureBoot = $SecureBoot;
     }
+
     if ($TPM)
     {
         if (!$FirmwareEfi)
@@ -804,7 +806,6 @@ function New-Vm
         }
         $vm.tpm = $TPM;
     }
-
 
     if ($PowerOnAfterClone) 
     {
