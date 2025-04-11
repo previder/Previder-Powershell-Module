@@ -684,9 +684,8 @@ function New-Vm
         [string] $BackupProfile,
         [boolean] $FirmwareEfi,
         [boolean] $SecureBoot,
-        [boolean] $TPM
-        
-	    [boolean] $PowerOnAfterClone
+        [boolean] $TPM,
+        [boolean] $PowerOnAfterClone
     )
 
     if ($Group)
