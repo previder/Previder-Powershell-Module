@@ -527,7 +527,7 @@ function Set-Vm
         [string[]] $Tags,
         [boolean] $TerminationProtection,
         [boolean] $SecureBoot,
-        [boolean] $TPM
+        [boolean] $TPM,
         [boolean] $AutoUpdateVmWareTools
     )
 
@@ -621,6 +621,7 @@ function Set-Vm
     {
         $Vm.terminationProtectionEnabled = $TerminationProtection
     }
+   
     if ( $PSBoundParameters.ContainsKey("TPM"))
     {
         $vm | Add-Member -NotePropertyName tpm -NotePropertyValue $TPM
@@ -687,7 +688,7 @@ function New-Vm
         [boolean] $FirmwareEfi,
         [boolean] $SecureBoot,
         [boolean] $TPM,
-        [boolean] $AutoUpdateVmWareTools
+        [boolean] $AutoUpdateVmWareTools,
 	    [boolean] $PowerOnAfterClone
 
     )
