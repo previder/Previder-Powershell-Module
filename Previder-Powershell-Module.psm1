@@ -685,6 +685,7 @@ function New-Vm
         [boolean] $FirmwareEfi,
         [boolean] $SecureBoot,
         [boolean] $TPM
+        
 	    [boolean] $PowerOnAfterClone
     )
 
