@@ -370,8 +370,6 @@ function Get-VmBackupProfileList
     param()
     $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/backupprofile"
     $Res
-
-
 }
 
 function Get-VmBackup
@@ -684,13 +682,10 @@ function New-Vm
         [string[]] $Tags,
         [boolean] $TerminationProtection,
         [string] $BackupProfile,
-       
         [boolean] $FirmwareEfi,
         [boolean] $SecureBoot,
-        [boolean] $TPM,
-        [boolean] $AutoUpdateVmWareTools,
+        [boolean] $TPM
 	    [boolean] $PowerOnAfterClone
-
     )
 
     if ($Group)
@@ -702,8 +697,6 @@ function New-Vm
         }
         $groupObj = $groupRes.content[0]
     }
-
-
 
     If ($Template)
     {
@@ -726,6 +719,7 @@ function New-Vm
     $computeClusterObj = Get-VmClusterList | Where-Object {
         $_.name -eq $Cluster
     }
+
     if (!$computeClusterObj)
     {
         Throw "cluster not found: " + $Cluster
@@ -766,7 +760,6 @@ function New-Vm
         "computeCluster" = $computeClusterObj.name;
         "provisioningType" = $ProvisioningType;
         "tags" = $Tags;
-
     }
 
     if ($GuestId)
@@ -812,11 +805,6 @@ function New-Vm
             Throw "FirmwareEfi needs to be true in order to include TPM"
         }
         $vm.tpm = $TPM;
-    }
-
-    if ($AutoUpdateVmWareTools)
-    {
-        $vm.autoUpdateVmWareTools = $AutoUpdateVmWareTools;
     }
 
     if ($PowerOnAfterClone) 
