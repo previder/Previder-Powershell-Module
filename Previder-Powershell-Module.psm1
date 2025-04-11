@@ -528,6 +528,7 @@ function Set-Vm
         [boolean] $TerminationProtection,
         [boolean] $SecureBoot,
         [boolean] $TPM
+        [boolean] $AutoUpdateVmWareTools
     )
 
     if ( $PSBoundParameters.ContainsKey("Group"))
@@ -625,6 +626,11 @@ function Set-Vm
         $vm | Add-Member -NotePropertyName tpm -NotePropertyValue $TPM
     }
 
+    if ( $PSBoundParameters.ContainsKey("AutoUpdateVmWareTools"))
+    {
+        $vm | Add-Member -NotePropertyName autoUpdateVmWareTools -NotePropertyValue $AutoUpdateVmWareTools
+    }
+
     if ( $PSBoundParameters.ContainsKey("SecureBoot"))
     {
         $vm | Add-Member -NotePropertyName secureBoot -NotePropertyValue $SecureBoot
@@ -681,6 +687,7 @@ function New-Vm
         [boolean] $FirmwareEfi,
         [boolean] $SecureBoot,
         [boolean] $TPM,
+        [boolean] $AutoUpdateVmWareTools
 	    [boolean] $PowerOnAfterClone
 
     )
@@ -796,6 +803,7 @@ function New-Vm
         }
         $vm.secureBoot = $SecureBoot;
     }
+
     if ($TPM)
     {
         if (!$FirmwareEfi)
@@ -805,6 +813,10 @@ function New-Vm
         $vm.tpm = $TPM;
     }
 
+    if ($AutoUpdateVmWareTools)
+    {
+        $vm.autoUpdateVmWareTools = $AutoUpdateVmWareTools;
+    }
 
     if ($PowerOnAfterClone) 
     {
