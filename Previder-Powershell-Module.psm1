@@ -289,7 +289,8 @@ function Get-VmPage
         "sort" = $Sort
     }
 
-    if ($Tags) {
+    if ($Tags)
+    {
         $QueryParams.Add("tags", $tags)
     }
 
@@ -551,6 +552,9 @@ function Set-Vm
     }
 
     $vm = Get-Vm -Id $Id
+
+
+
     if ( $PSBoundParameters.ContainsKey("Name"))
     {
         $vm.name = $Name
@@ -615,24 +619,41 @@ function Set-Vm
         $vm.backupProfile = $BackupProfile
     }
 
-    If ( $PSBoundParameters.ContainsKey("TerminationProtection"))
+    if ($PSBoundParameters.ContainsKey("TerminationProtection"))
     {
-        $Vm.terminationProtectionEnabled = $TerminationProtection
+        $vm.terminationProtectionEnabled = $TerminationProtection
     }
-   
-    if ( $PSBoundParameters.ContainsKey("TPM"))
+    else
+    {
+        $vm.terminationProtectionEnabled = $null
+    }
+
+
+    if ($PSBoundParameters.ContainsKey("TPM"))
     {
         $vm | Add-Member -NotePropertyName tpm -NotePropertyValue $TPM
     }
+    else
+    {
+        $vm | Add-Member -NotePropertyName tpm -NotePropertyValue $null;
+    }
 
-    if ( $PSBoundParameters.ContainsKey("AutoUpdateVmWareTools"))
+    if ($PSBoundParameters.ContainsKey("AutoUpdateVmWareTools"))
     {
         $vm | Add-Member -NotePropertyName autoUpdateVmWareTools -NotePropertyValue $AutoUpdateVmWareTools
+    }
+    else
+    {
+        $vm | Add-Member -NotePropertyName autoUpdateVmWareTools -NotePropertyValue $null
     }
 
     if ( $PSBoundParameters.ContainsKey("SecureBoot"))
     {
         $vm | Add-Member -NotePropertyName secureBoot -NotePropertyValue $SecureBoot
+    }
+    else
+    {
+        $vm | Add-Member -NotePropertyName secureBoot -NotePropertyValue $null
     }
 
     $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/iaas/virtualmachine/$( $Id )" -RequestMethod PUT -Body ($Vm | ConvertTo-Json -Depth 10)
@@ -807,9 +828,9 @@ function New-Vm
         $vm.tpm = $TPM;
     }
 
-    if ($PowerOnAfterClone) 
+    if ($PowerOnAfterClone)
     {
-	    $vm.powerOnAfterClone = $PowerOnAfterClone
+        $vm.powerOnAfterClone = $PowerOnAfterClone
     }
 
     if ($groupObj)
