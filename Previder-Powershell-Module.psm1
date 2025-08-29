@@ -142,7 +142,7 @@ function Connect-Annexus
             return
         }
 
-        $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/session"
+        $Res = New-AnnexusWebRequest -Uri "$( $Annexus.Uri )/v2/core/session"
         $Annexus.Session.Headers.Set_Item("X-CSRF-Token", $Res.Headers["X-CSRF-Token"])
 
         Write-Host "Logged in successfully"
