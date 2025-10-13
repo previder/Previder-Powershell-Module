@@ -527,7 +527,8 @@ function Set-Vm
         [boolean] $TerminationProtection,
         [boolean] $SecureBoot,
         [boolean] $TPM,
-        [boolean] $AutoUpdateVmWareTools
+        [boolean] $AutoUpdateVmWareTools,
+        [string] $Flavor
     )
 
     if ( $PSBoundParameters.ContainsKey("Group"))
@@ -553,8 +554,6 @@ function Set-Vm
 
     $vm = Get-Vm -Id $Id
 
-
-
     if ( $PSBoundParameters.ContainsKey("Name"))
     {
         $vm.name = $Name
@@ -562,20 +561,6 @@ function Set-Vm
     if ( $PSBoundParameters.ContainsKey("NetworkInterfaces"))
     {
         $vm.networkInterfaces = $NetworkInterfaces
-    }
-    if ( $PSBoundParameters.ContainsKey("Disks"))
-    {
-        $vm.disks = $Disks
-    }
-
-    if ( $PSBoundParameters.ContainsKey("CpuCores"))
-    {
-        $vm.cpuCores = $CpuCores
-    }
-
-    if ( $PSBoundParameters.ContainsKey("MemoryMb"))
-    {
-        $vm.memory = $MemoryMb
     }
 
     if ( $PSBoundParameters.ContainsKey("computeClusterObj"))
@@ -588,26 +573,46 @@ function Set-Vm
         $vm.tags = $Tags
     }
 
-    if ($CpuSockets)
+    if ( $PSBoundParameters.ContainsKey("Flavor"))
     {
-
-        if ($CpuCores)
+        $vm.flavor = $Flavor
+    }
+    else
+    {
+        if ( $PSBoundParameters.ContainsKey("Disks"))
         {
-            if ($CpuCores % $CpuSockets -gt 0)
-            {
-                throw "Invalid number of cpu sockets, cpu cores must be divisible by cpu sockets with no remainders"
-            }
-        }
-        else
-        {
-            if ($vm.CpuCores % $CpuSockets -gt 0)
-            {
-                throw "Invalid number of cpu sockets, cpu cores must be divisible by cpu sockets with no remainders"
-            }
+            $vm.disks = $Disks
         }
 
+        if ( $PSBoundParameters.ContainsKey("CpuCores"))
+        {
+            $vm.cpuCores = $CpuCores
+        }
 
-        $vm.cpuSockets = $CpuSockets
+        if ( $PSBoundParameters.ContainsKey("MemoryMb"))
+        {
+            $vm.memory = $MemoryMb
+        }
+
+        if ($CpuSockets)
+        {
+            if ($CpuCores)
+            {
+                if ($CpuCores % $CpuSockets -gt 0)
+                {
+                    throw "Invalid number of cpu sockets, cpu cores must be divisible by cpu sockets with no remainders"
+                }
+            }
+            else
+            {
+                if ($vm.CpuCores % $CpuSockets -gt 0)
+                {
+                    throw "Invalid number of cpu sockets, cpu cores must be divisible by cpu sockets with no remainders"
+                }
+            }
+
+            $vm.cpuSockets = $CpuSockets
+        }
     }
 
     if ( $PSBoundParameters.ContainsKey("groupObj"))
@@ -619,7 +624,7 @@ function Set-Vm
         $vm.backupProfile = $BackupProfile
     }
 
-    if ($PSBoundParameters.ContainsKey("TerminationProtection"))
+    if ( $PSBoundParameters.ContainsKey("TerminationProtection"))
     {
         $vm.terminationProtectionEnabled = $TerminationProtection
     }
@@ -628,8 +633,7 @@ function Set-Vm
         $vm.terminationProtectionEnabled = $null
     }
 
-
-    if ($PSBoundParameters.ContainsKey("TPM"))
+    if ( $PSBoundParameters.ContainsKey("TPM"))
     {
         $vm | Add-Member -NotePropertyName tpm -NotePropertyValue $TPM
     }
@@ -638,7 +642,7 @@ function Set-Vm
         $vm | Add-Member -NotePropertyName tpm -NotePropertyValue $null;
     }
 
-    if ($PSBoundParameters.ContainsKey("AutoUpdateVmWareTools"))
+    if ( $PSBoundParameters.ContainsKey("AutoUpdateVmWareTools"))
     {
         $vm | Add-Member -NotePropertyName autoUpdateVmWareTools -NotePropertyValue $AutoUpdateVmWareTools
     }
@@ -691,14 +695,13 @@ function New-Vm
         [string] $SourceVmId,
         [parameter(ParameterSetName = "guestIdSet", Mandatory = $TRUE)]
         [string] $GuestId,
-        [int] $CpuCores = 1,
-        [int] $CpuSockets = 1,
-        [int] $MemoryMb = 1024,
+        [int] $CpuCores,
+        [int] $CpuSockets,
+        [int] $MemoryMb,
         [ProvisioningType] $ProvisioningType,
         [string] $UserData,
         [parameter(Mandatory = $TRUE)]
         [string[]] $Nics,
-        [parameter(Mandatory = $TRUE)]
         [int[]] $Disks,
         [string[]] $Tags,
         [boolean] $TerminationProtection,
@@ -706,7 +709,8 @@ function New-Vm
         [boolean] $FirmwareEfi,
         [boolean] $SecureBoot,
         [boolean] $TPM,
-        [boolean] $PowerOnAfterClone
+        [boolean] $PowerOnAfterClone,
+        [string] $Flavor
     )
 
     if ($Group)
@@ -724,9 +728,25 @@ function New-Vm
         $templateObj = Get-VmTemplateList | Where-Object {
             $_.name -eq $Template
         }
+
         if (!$templateObj)
         {
             Throw "template not found: " + $Template
+        }
+
+        if (!$CpuCores)
+        {
+            $CpuCores = $templateObj.minimalCpuCores
+        }
+
+        if (!$MemoryMb)
+        {
+            $MemoryMb = $templateObj.minimalMemory
+        }
+
+        if (!$Disks)
+        {
+            $Disks = @($templateObj.minimalDiskSize)
         }
     }
     ElseIf ($SourceVmId)
@@ -737,6 +757,12 @@ function New-Vm
             Throw "source vm not found: " + $SourceVmId
         }
     }
+
+    #    Defaults
+    $CpuSockets = $CpuSockets = 0 ? $CpuSockets : 1
+    $CpuCores = $CpuCores = 0 ? $CpuCores : 1
+    $MemoryMb = $MemoryMb = 0 ? $MemoryMb : 1024
+
     $computeClusterObj = Get-VmClusterList | Where-Object {
         $_.name -eq $Cluster
     }
@@ -788,7 +814,11 @@ function New-Vm
         $vm.guestId = $GuestId
     }
 
-    if ($CpuSockets)
+    if ($Flavor)
+    {
+        $vm.flavor = $Flavor
+    }
+    elseif ($PSBoundParameters.ContainsKey("CpuSocket"))
     {
         if (!$PSBoundParameters.ContainsKey("CpuCores"))
         {
