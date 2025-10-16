@@ -85,6 +85,7 @@ Gets all the pages of virtualnetworks
 - Tags (optional) - List of strings to set specific tags on the Virtual Server
 - Disks (optional) - List of disks that will be used by the server.
 - NetworkInterfaces (optional) - List of network interfaces that will be used by the server. Interfaces not included in the list will be deleted.
+- Flavor (optional) - Name of the flavor to apply to the VM. Providing a flavor, overrides separate CPU cores, memoryMb and disks. Can only be upgraded", example = "Entry 1"
 
 #### Example: Edit a list of network interfaces
 Set-Vm -Id "630f560b37cd6574d8fff3f3" -NetworkInterfaces @{
@@ -115,14 +116,15 @@ Set-Vm -Id "630f560b37cd6574d8fff3f3" -Disks @{
 - Cluster (required) - Name of the compute cluster to deploy the Virtual Server to
 - Template (optional) - Name of the template to deploy (Either Template or SourceVmId is required)
 - SourceVmId (optional) - Id of the Virtual Server to clone (Either Template or SourceVmId is required)
-- CpuCores (required) - Integer of number of cpu cores
-- MemoryMb (required) - Integer of MBs of memory to set the VM to
+- CpuCores (optional) - Integer of number of cpu cores
+- MemoryMb (optional) - Integer of MBs of memory to set the VM to
 - ProvisioningType (optional) - Provide your own provisioningtype, leave blank to copy it of the template
 - UserData (optional) - Send custom userdata (leave blank if you do not know what to enter)
 - Nics (required) - List of network names to link the Virtual Server to
-- Disks (required) - List of integers for disk sizes
+- Disks (optional) - List of integers for disk sizes
 - TerminationProtection (optional) - Boolean of the termination protection
 - Tags (optional) - List of strings to set specific tags on the Virtual Server
+- Flavor (optional) - Name of the flavor to apply to the VM. Providing a flavor, overrides separate CPU cores, memoryMb and disks. Can only be upgraded", example = "Entry 1"
 
 ### Update-VmHardware
 - Id (required) - Id of the Virtual Server to upgrade
