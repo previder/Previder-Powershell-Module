@@ -759,9 +759,20 @@ function New-Vm
     }
 
     #    Defaults
-    $CpuSockets = $CpuSockets = 0 ? $CpuSockets : 1
-    $CpuCores = $CpuCores = 0 ? $CpuCores : 1
-    $MemoryMb = $MemoryMb = 0 ? $MemoryMb : 1024
+    if ($CpuSockets -eq 0)
+    {
+        $CpuSockets = 1;
+    }
+
+    if ($CpuCores -eq 0)
+    {
+        $CpuCores = 1;
+    }
+    if ($MemoryMb -eq 0)
+    {
+        $MemoryMb = 1024
+    }
+
 
     $computeClusterObj = Get-VmClusterList | Where-Object {
         $_.name -eq $Cluster
