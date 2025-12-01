@@ -23,16 +23,16 @@ Wait-VmTask -Task $task
 ### Register multiple domains from a file
 
 Import-Module Previder-Powershell-Domain-Module
-Connect-Annexus -token 1234ewassddwadsfdgw3442aaaaaw4
+Connect-Annexus -token <token>
 foreach($line in Get-Content .\domains.txt) {    
     Echo "Register $line"
-    Register_Domain -DomainName $line -Registrant "RegistrantContactId"  
+    Register-Domain -DomainName $line -Registrant "RegistrantContactId"  
 }
 
 ### Transfer with specific domain contacts
 Import-Module ./Previder-Powershell-Domain-Module.psm1
-Connect-Annexus -token 1234ewassddwadsfdgw3442aaaaaw4
-Register_Domain -DomainName "previder.nl" -Registrant "RegistrantContactId" -AdministrativeContact "AdminContactId" -TechnicalContact "TechContactId" -TransferToken "ExampleToken"   
+Connect-Annexus -token <token>
+Register-Domain -DomainName "previder.nl" -Registrant "RegistrantContactId" -AdministrativeContact "AdminContactId" -TechnicalContact "TechContactId" -TransferToken "ExampleToken"   
 
 
 
