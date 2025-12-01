@@ -710,6 +710,7 @@ function New-Vm
         [boolean] $SecureBoot,
         [boolean] $TPM,
         [boolean] $PowerOnAfterClone,
+        [boolean] $Byol,
         [string] $Flavor
     )
 
@@ -867,6 +868,11 @@ function New-Vm
             Throw "FirmwareEfi needs to be true in order to include TPM"
         }
         $vm.tpm = $TPM;
+    }
+
+    if ($Byol)
+    {
+        $vm.byol = $Byol;
     }
 
     if ($PowerOnAfterClone)
