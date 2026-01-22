@@ -2,7 +2,7 @@
 The Previder Powershell Module can be used to interact with resources on the Previder IaaS environment. 
 The provider needs to be configured with an API token. This token can be acquired by loggin in and navigationg to your user setting page.
 
-## Example Usage
+## Example IaaS Usage
 
 ```
 Import-Module Previder-Powershell-Module
@@ -18,6 +18,23 @@ Wait-VmTask -Task $task
 $task = Invoke-Vm -Name "Virtual Server 01" -Action "POWERON"
 Wait-VmTask -Task $task
 ```
+## Example Domain Usage
+
+### Register multiple domains from a file
+
+Import-Module Previder-Powershell-Domain-Module
+Connect-Annexus -token <token>
+foreach($line in Get-Content .\domains.txt) {    
+    Echo "Register $line"
+    Register-Domain -DomainName $line -Registrant "RegistrantContactId"  
+}
+
+### Transfer with specific domain contacts
+Import-Module ./Previder-Powershell-Domain-Module.psm1
+Connect-Annexus -token <token>
+Register-Domain -DomainName "previder.nl" -Registrant "RegistrantContactId" -AdministrativeContact "AdminContactId" -TechnicalContact "TechContactId" -TransferToken "ExampleToken"   
+
+
 
 ## Argument reference
 
